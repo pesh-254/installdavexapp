@@ -1,33 +1,7 @@
 {
-  "version": 2,
-  "name": "davexmovies",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    },
-    {
-      "src": "/sw.js",
-      "headers": {
-        "Cache-Control": "no-cache"
-      },
-      "dest": "/sw.js"
-    },
-    {
-      "src": "/manifest.webmanifest",
-      "headers": {
-        "Content-Type": "application/manifest+json"
-      },
-      "dest": "/manifest.webmanifest"
-    }
+    { "src": "/sw.js", "headers": { "Cache-Control": "no-cache" }, "dest": "/sw.js" },
+    { "src": "/manifest.webmanifest", "headers": { "Content-Type": "application/manifest+json" }, "dest": "/manifest.webmanifest" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
