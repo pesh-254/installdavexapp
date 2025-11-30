@@ -11,15 +11,15 @@
   "orientation": "any",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "https://raw.githubusercontent.com/pesh-254/installdavexapp/main/IMG-20251130-WA0176.jpg",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "https://raw.githubusercontent.com/pesh-254/installdavexapp/main/IMG-20251130-WA0176.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ]
