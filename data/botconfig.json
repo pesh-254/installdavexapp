@@ -1,0 +1,8 @@
+{
+  "botName": "DAVE-X",
+  "menuImage": "",
+  "ownerName": "Owner",
+  "welcomeMessage": "Welcome to the group!",
+  "goodbyeMessage": "Goodbye!",
+  "antideletePrivate": true
+}

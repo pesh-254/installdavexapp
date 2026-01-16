@@ -1,0 +1,12 @@
+{
+  "users": ["0@s.whatsapp.net"],
+  "groups": ["0@g.us"],
+  "antilink": {},
+  "antibadword": {},
+  "warnings": {},
+  "sudo": [],
+  "welcome": {},
+  "goodbye": {},
+  "chatbot": {},
+  "autoReaction": false
+}
