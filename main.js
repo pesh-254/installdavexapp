@@ -926,15 +926,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await anticallCommand(sock, chatId, message, fullArgs);
                 break;
 
-            case 'pmblocker':
-                if (!message.key.fromMe && !senderIsSudo) {
-                    await sock.sendMessage(chatId, { text: 'Only owner or sudo can use pmblocker.' }, { quoted: message });
-                    commandExecuted = true;
-                    break;
+           // case 'pmblocker':
+               // if (!message.key.fromMe && !senderIsSudo) {
+              //      await sock.sendMessage(chatId, { text: 'Only owner or sudo can use pmblocker.' }, { quoted: message });
+                  //  commandExecuted = true;
+                  //  break;
                 }
-                await pmblockerCommand(sock, chatId, message, fullArgs);
-                commandExecuted = true;
-                break;
+              //  await pmblockerCommand(sock, chatId, message, fullArgs);
+              //  commandExecuted = true;
+              //  break;
 
             case 'owner':
                 await ownerCommand(sock, chatId);
