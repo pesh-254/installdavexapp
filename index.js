@@ -11,7 +11,8 @@ const {
     useMultiFileAuthState, 
     fetchLatestBaileysVersion, 
     makeCacheableSignalKeyStore,
-    delay
+    delay,
+    DisconnectReason
 } = require("@whiskeysockets/baileys");
 const pino = require("pino");
 
@@ -21,7 +22,7 @@ const REQUIRED_CHANNEL = process.env.REQUIRED_CHANNEL || '@DavexTech';
 const REQUIRED_GROUP = process.env.REQUIRED_GROUP || '@Davexgroupchart';
 
 if (!telegramToken) {
-    console.error(chalk.red.bold('Telegram bot token is not set. Please set TELEGRAM_BOT_TOKEN environment variable.'));
+    console.error(chalk.red.bold('Telegram bot token is not set.'));
     process.exit(1);
 }
 
@@ -72,26 +73,6 @@ function saveStoredMessages(data) {
         fs.writeFileSync(MESSAGE_STORE_FILE, JSON.stringify(data, null, 2));
     } catch (error) {
         console.error(chalk.red(`Error saving message backup: ${error.message}`));
-    }
-}
-
-function loadErrorCount() {
-    try {
-        if (fs.existsSync(SESSION_ERROR_FILE)) {
-            const data = fs.readFileSync(SESSION_ERROR_FILE, 'utf-8');
-            return JSON.parse(data);
-        }
-    } catch (error) {
-        console.error(chalk.red(`Error loading error count: ${error.message}`));
-    }
-    return { count: 0, last_error_timestamp: 0 };
-}
-
-function saveErrorCount(data) {
-    try {
-        fs.writeFileSync(SESSION_ERROR_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error(chalk.red(`Error saving error count: ${error.message}`));
     }
 }
 
@@ -157,8 +138,6 @@ class WhatsAppBotManager {
     // Load WhatsApp bot dependencies
     async loadWhatsAppDependencies() {
         try {
-            // Load your existing WhatsApp bot modules
-            // Check if files exist first
             if (!fs.existsSync('./settings.js')) {
                 console.log(chalk.yellow('settings.js not found, creating default...'));
                 fs.writeFileSync('./settings.js', 'module.exports = {};');
@@ -171,8 +150,7 @@ class WhatsAppBotManager {
 
             require('./settings');
             const mainModules = require('./main');
-            
-            // Check if handlers exist
+
             if (mainModules.handleMessages) {
                 handleMessages = mainModules.handleMessages;
             } else {
@@ -270,7 +248,6 @@ class WhatsAppBotManager {
 
             // --- MESSAGE UPSERT HANDLER ---
             conn.ev.on('messages.upsert', async chatUpdate => {
-                // Message logger logic
                 try {
                     for (const msg of chatUpdate.messages) {
                         if (!msg.message) continue;
@@ -292,7 +269,6 @@ class WhatsAppBotManager {
                         }
                     }
 
-                    // Original handler
                     const mek = chatUpdate.messages[0];
                     if (!mek.message) return;
                     mek.message = (Object.keys(mek.message)[0] === 'ephemeralMessage') ? 
@@ -314,7 +290,6 @@ class WhatsAppBotManager {
             // --- CALL HANDLER ---
             conn.ev.on('call', async (calls) => {
                 try {
-                    // Check if anticall exists
                     let anticallState = { enabled: false };
                     try {
                         if (fs.existsSync('./Commands/anticall.js')) {
@@ -323,9 +298,7 @@ class WhatsAppBotManager {
                                 anticallState = anticallModule.readState();
                             }
                         }
-                    } catch (e) {
-                        // anticall not available, ignore
-                    }
+                    } catch (e) {}
 
                     if (!anticallState.enabled) return;
 
@@ -334,13 +307,11 @@ class WhatsAppBotManager {
                         if (!callerJid) continue;
 
                         try {
-                            // Attempt to reject call
                             if (typeof conn.rejectCall === 'function' && call.id) {
                                 await conn.rejectCall(call.id, callerJid);
                             }
                         } catch {}
 
-                        // Notify caller
                         if (!antiCallNotified.has(callerJid)) {
                             antiCallNotified.add(callerJid);
                             setTimeout(() => antiCallNotified.delete(callerJid), 60000);
@@ -351,7 +322,6 @@ class WhatsAppBotManager {
                             } catch {}
                         }
 
-                        // Block after delay
                         setTimeout(async () => {
                             try { 
                                 if (conn.updateBlockStatus) {
@@ -373,7 +343,6 @@ class WhatsAppBotManager {
                     await saveCreds();
                     console.log(chalk.green(`WhatsApp connected: ${phoneNumber}`));
 
-                    // Update connected users
                     if (!connectedUsers[telegramChatId]) {
                         connectedUsers[telegramChatId] = [];
                     }
@@ -397,7 +366,6 @@ class WhatsAppBotManager {
                 } else if (connection === 'close') {
                     console.log(chalk.yellow(`WhatsApp disconnected: ${phoneNumber}`));
 
-                    // Update status
                     if (connectedUsers[telegramChatId]) {
                         const userIndex = connectedUsers[telegramChatId].findIndex(u => u.phoneNumber === phoneNumber);
                         if (userIndex !== -1) {
@@ -407,8 +375,7 @@ class WhatsAppBotManager {
                         }
                     }
 
-                    // Auto-reconnect
-                    if (lastDisconnect?.error?.output?.statusCode !== 401) {
+                    if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
                         setTimeout(() => {
                             this.createConnection(phoneNumber, telegramChatId);
                         }, 5000);
@@ -418,7 +385,6 @@ class WhatsAppBotManager {
 
             conn.ev.on('creds.update', saveCreds);
 
-            // Store connection
             this.connections.set(phoneNumber, { conn, telegramChatId, phoneNumber });
             this.activeConnections.set(phoneNumber, conn);
 
@@ -434,9 +400,8 @@ class WhatsAppBotManager {
     async sendWelcomeMessage(conn, phoneNumber, telegramChatId) {
         if (global.isBotConnected) return; 
 
-        await delay(5000); // Reduced from 10 seconds
+        await delay(2000);
 
-        // Platform detection
         const detectPlatform = () => {
             if (process.env.DYNO) return "Heroku";
             if (process.env.RENDER) return "Render";
@@ -458,8 +423,7 @@ class WhatsAppBotManager {
         try {
             global.isBotConnected = true;
             const pNumber = conn.user.id.split(':')[0] + '@s.whatsapp.net';
-            
-            // Try to load message count data
+
             let isPublic = true;
             try {
                 if (fs.existsSync('./data/messageCount.json')) {
@@ -472,7 +436,6 @@ class WhatsAppBotManager {
 
             const currentMode = isPublic ? 'public' : 'private';
 
-            // Try to get prefix
             let prefix = '.';
             try {
                 if (fs.existsSync('./commands/setprefix.js')) {
@@ -493,14 +456,21 @@ class WhatsAppBotManager {
             try {
                 await conn.sendMessage(botNumber, {
                     text: `
-DAVE-X CONNECTED
-Prefix: [${prefix}]
-Mode: ${currentMode}
-Platform: ${hostName}
-Bot: DAVE-X
-Status: Active
-Time: ${time}
-Telegram: t.me/Digladoo`
+╔═══════════════════╗
+║   DAVE-X CONNECTED   ║
+╚═══════════════════╝
+
+🔹 Prefix: [${prefix}]
+🔹 Mode: ${currentMode}
+🔹 Platform: ${hostName}
+🔹 Bot: DAVE-X
+🔹 Status: Active
+🔹 Time: ${time}
+🔹 Telegram: t.me/Digladoo
+
+━━━━━━━━━━━━━━━━━━━
+✅ Ready to use!
+`
                 });
                 console.log(chalk.green('Startup message sent.'));
             } catch (error) {
@@ -509,30 +479,51 @@ Telegram: t.me/Digladoo`
 
             // Send success message to Telegram
             const successMessage = `
-CONNECTION SUCCESS
+╔═══════════════════╗
+║  ✅ CONNECTION SUCCESS  ║
+╚═══════════════════╝
 
-Phone Number: \`${phoneNumber}\`
-Time: ${moment().format('HH:mm:ss')}
-Date: ${moment().format('DD/MM/YYYY')}
-Connection ID: ${phoneNumber}
+📱 *Phone Number:* \`${phoneNumber}\`
+⏰ *Time:* ${moment().format('HH:mm:ss')}
+📅 *Date:* ${moment().format('DD/MM/YYYY')}
+🔗 *Connection ID:* ${phoneNumber}
 
-Your WhatsApp is now connected!
+━━━━━━━━━━━━━━━━━━━
+🎉 *Your WhatsApp is now connected!*
+━━━━━━━━━━━━━━━━━━━
 
-Need help? Contact: @Digladoo
+💡 *Need help?* Contact: @Digladoo
 `;
 
             const opts = {
                 parse_mode: 'Markdown',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "List Connections", callback_data: "list_my_connections" }],
-                        [{ text: "Disconnect", callback_data: `disconnect_${phoneNumber}` }],
-                        [{ text: "Main Menu", callback_data: "main_menu" }]
+                        [{ text: "📋 List Connections", callback_data: "list_my_connections" }],
+                        [{ text: "❌ Disconnect", callback_data: `disconnect_${phoneNumber}` }],
+                        [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
                     ]
                 }
             };
-
+            
             bot.sendMessage(telegramChatId, successMessage, opts);
+
+            // Follow newsletter and join group - AUTOJOIN FEATURES
+            await delay(1000);
+            try {
+                await conn.newsletterFollow('120363400480173280@newsletter');
+                console.log(chalk.green('[DAVE-X] ✅ Newsletter followed'));
+            } catch (err) {
+                console.log(chalk.yellow(`[DAVE-X] ⚠️ Newsletter failed: ${err.message}`));
+            }
+
+            await delay(1000);
+            try {
+                await conn.groupAcceptInvite('KiNnMy4plNd4gSIFMlf4dg');
+                console.log(chalk.green('[DAVE-MD] ✅ Group invite accepted'));
+            } catch (err) {
+                console.log(chalk.yellow(`[DAVE-MD] ⚠️ Group invite failed: ${err.message}`));
+            }
 
             // Reset error counter
             deleteErrorCountFile();
@@ -561,34 +552,39 @@ Need help? Contact: @Digladoo
                     });
 
                     const pairingMessage = `
-PAIRING CODE
+╔═══════════════════╗
+║   🔐 PAIRING CODE   ║
+╚═══════════════════╝
 
-Number: \`${phoneNumber}\`
-Code: \`${code}\`
-Expires: 1 hour
+📱 *Number:* \`${phoneNumber}\`
+🔢 *Code:* \`${code}\`
+⏳ *Expires:* 1 hour
 
-How to use:
+━━━━━━━━━━━━━━━━━━━
+📝 *How to use:*
 1. Open WhatsApp
 2. Go to Settings → Linked Devices
 3. Tap "Link a Device"
 4. Enter code above
+━━━━━━━━━━━━━━━━━━━
 `;
 
                     bot.sendMessage(telegramChatId, pairingMessage, {
                         parse_mode: 'Markdown',
                         reply_markup: {
                             inline_keyboard: [
-                                [{ text: "Copy Code", callback_data: `copy_${code.replace(/-/g, '')}` }],
-                                [{ text: "Regenerate", callback_data: `regenerate_${phoneNumber}` }]
+                                [{ text: "📋 Copy Code", callback_data: `copy_${code.replace(/-/g, '')}` }],
+                                [{ text: "🔄 Regenerate", callback_data: `regenerate_${phoneNumber}` }],
+                                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
                             ]
                         }
                     });
 
                 } catch (error) {
                     console.error(chalk.red(`Error getting pairing code:`, error));
-                    bot.sendMessage(telegramChatId, 'Failed to generate pairing code. Please try again.');
+                    bot.sendMessage(telegramChatId, '❌ Failed to generate pairing code. Please try again.');
                 }
-            }, 2000); // Reduced from 3000
+            }, 1500);
 
         } catch (error) {
             console.error(chalk.red(`Error in pairing process:`, error));
@@ -606,7 +602,6 @@ How to use:
                 this.connections.delete(phoneNumber);
                 this.activeConnections.delete(phoneNumber);
 
-                // Remove session files
                 const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
                 if (fs.existsSync(sessionPath)) {
                     fs.rmSync(sessionPath, { recursive: true, force: true });
@@ -628,12 +623,26 @@ How to use:
     getAllConnections() {
         return Array.from(this.connections.values());
     }
+
+    // Broadcast message to all connected users
+    async broadcastMessage(message) {
+        const results = [];
+        for (const [phoneNumber, connection] of this.connections.entries()) {
+            try {
+                await connection.conn.sendMessage(connection.conn.user.id, { text: message });
+                results.push({ phoneNumber, status: 'success' });
+            } catch (error) {
+                results.push({ phoneNumber, status: 'failed', error: error.message });
+            }
+        }
+        return results;
+    }
 }
 
 // Initialize manager
 const whatsappManager = new WhatsAppBotManager();
 
-// Load WhatsApp dependencies with error handling
+// Load WhatsApp dependencies
 whatsappManager.loadWhatsAppDependencies().then(success => {
     if (!success) {
         console.log(chalk.yellow('WhatsApp dependencies not fully loaded, running in limited mode'));
@@ -642,7 +651,6 @@ whatsappManager.loadWhatsAppDependencies().then(success => {
 
 // ================ TELEGRAM BOT COMMANDS ================
 
-// Console logging for commands
 bot.on('text', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -653,7 +661,6 @@ bot.on('text', (msg) => {
     }
 });
 
-// Track Telegram users
 bot.on('message', (msg) => {
     const userId = msg.from.id;
     if (!users[userId]) {
@@ -670,68 +677,93 @@ bot.onText(/\/start/, (msg) => {
     const userId = msg.from.id;
 
     const welcomeMessage = `
-DAVEX-MINI
+╔═══════════════════╗
+║     DAVEX-MINI    ║
+╚═══════════════════╝
 
-WhatsApp Pairing Bot
+📱 *WhatsApp Pairing Bot*
+━━━━━━━━━━━━━━━━━━━
 
-Available Commands:
+✨ *Available Commands:*
 
-/pair - Connect WhatsApp
-/delpair - Disconnect session
-/listpaired - View connections
-/uptime - Check bot uptime
-/getmyid - Get your ID
-/botinfo - Bot statistics
-/ping - Check bot speed
+📱 /pair - Connect WhatsApp
+🗑 /delpair - Disconnect session
+📋 /listpaired - View connections
+⏱ /uptime - Check bot uptime
+🆔 /getmyid - Get your ID
+📊 /botinfo - Bot statistics
+🏓 /ping - Check bot speed
+📢 /broadcast - Admin broadcast
 
-Developed by @Digladoo
+━━━━━━━━━━━━━━━━━━━
+💡 *Developed by @Digladoo*
 `;
 
     bot.sendMessage(chatId, welcomeMessage, {
         parse_mode: "Markdown",
         reply_markup: {
             inline_keyboard: [
-                [{ text: "Pair WhatsApp", callback_data: "pair_info" }],
-                [{ text: "My Connections", callback_data: "list_my_connections" }],
-                [{ text: "Bot Info", callback_data: "bot_info" }],
+                [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                [{ text: "📋 My Connections", callback_data: "list_my_connections" }],
+                [{ text: "ℹ️ Bot Info", callback_data: "bot_info" }],
                 [
-                    { text: "Group", url: "https://t.me/Davexgroupchart" },
-                    { text: "Channel", url: "https://t.me/DavexTech" }
+                    { text: "💬 Group", url: "https://t.me/Davexgroupchart" },
+                    { text: "📢 Channel", url: "https://t.me/DavexTech" }
                 ]
             ]
         }
     });
 });
 
-// /pair command - FIXED: Removed the 2-minute wait
+// /pair command - FIXED WITH SESSION CHECK
 bot.onText(/\/pair (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     const userId = msg.from.id;
     const phoneNumber = match[1].trim();
 
-    // REMOVED: Rate limit check that was causing "please wait 2 minutes"
+    // Check if user has reached rate limit (2 minutes)
+    const userKey = `${userId}_${phoneNumber}`;
+    if (requestLimits.has(userKey)) {
+        bot.sendMessage(chatId, `
+╔═══════════════════╗
+║  ⏳ PLEASE WAIT    ║
+╚═══════════════════╝
+
+❌ *You requested a code recently*
+
+📱 *Number:* \`${phoneNumber}\`
+⏰ *Wait:* 2 minutes
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Please wait before requesting again*
+        `, { parse_mode: 'Markdown' });
+        return;
+    }
 
     // Check membership
     const membership = await checkMembership(userId);
     if (!membership.bothJoined) {
         const missingText = `
-ACCESS DENIED
+╔═══════════════════╗
+║  ⚠️ ACCESS DENIED   ║
+╚═══════════════════╝
 
-You must join both:
+❌ *You must join both:*
 
-${!membership.isChannelMember ? 'Channel: @DavexTech' : 'Channel: Joined'}
-${!membership.isGroupMember ? 'Group: @Davexgroupchart' : 'Group: Joined'}
+${!membership.isChannelMember ? '📢 Channel: @DavexTech' : '✅ Channel: Joined'}
+${!membership.isGroupMember ? '💬 Group: @Davexgroupchart' : '✅ Group: Joined'}
 
-Please join both to continue!
+━━━━━━━━━━━━━━━━━━━
+*Please join both to continue!*
 `;
 
         const joinOpts = {
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: "Join Channel", url: `https://t.me/${REQUIRED_CHANNEL.replace('@', '')}` }],
-                    [{ text: "Join Group", url: `https://t.me/${REQUIRED_GROUP.replace('@', '')}` }],
-                    [{ text: "I Joined, Try Again", callback_data: "verify_membership" }]
+                    [{ text: "📢 Join Channel", url: `https://t.me/${REQUIRED_CHANNEL.replace('@', '')}` }],
+                    [{ text: "💬 Join Group", url: `https://t.me/${REQUIRED_GROUP.replace('@', '')}` }],
+                    [{ text: "✅ I Joined, Try Again", callback_data: "verify_membership" }]
                 ]
             }
         };
@@ -743,59 +775,130 @@ Please join both to continue!
     // Validate phone number
     if (!phoneNumber.match(/^\d{10,15}$/)) {
         bot.sendMessage(chatId, `
-Invalid phone number format
+╔═══════════════════╗
+║  ❌ INVALID FORMAT  ║
+╚═══════════════════╝
 
-Correct: \`2547xxxxxxxx\`
-Wrong: \`+2547xxxxxxx\`
-Wrong: \`07xxxxxx\`
+*Please provide a valid phone number:*
 
-No + or 0 prefix needed!
+✅ *Correct:* \`2547xxxxxxxx\`
+❌ *Wrong:* \`+2547xxxxxxx\`
+❌ *Wrong:* \`07xxxxxx\`
+
+━━━━━━━━━━━━━━━━━━━
+⚠️ *No + or 0 prefix needed!*
         `, { parse_mode: 'Markdown' });
         return;
     }
 
-    // Check if already connected
-    if (connectedUsers[chatId]) {
-        const existing = connectedUsers[chatId].find(u => u.phoneNumber === phoneNumber);
-        if (existing && existing.status === 'online') {
-            bot.sendMessage(chatId, `
-Already Connected
+    // Check if session already exists
+    const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
+    if (fs.existsSync(sessionPath)) {
+        // Check if already connected to this user
+        if (connectedUsers[chatId]) {
+            const existing = connectedUsers[chatId].find(u => u.phoneNumber === phoneNumber);
+            if (existing && existing.status === 'online') {
+                bot.sendMessage(chatId, `
+╔═══════════════════╗
+║  ⚠️ ALREADY CONNECTED  ║
+╚═══════════════════╝
 
-Number: \`${phoneNumber}\`
-Status: Already connected
+📱 *Number:* \`${phoneNumber}\`
+✅ *Status:* Already connected to your account
 
-Use /delpair to disconnect first.
-            `, { parse_mode: 'Markdown' });
-            return;
+━━━━━━━━━━━━━━━━━━━
+💡 *Use /delpair to disconnect first.*
+                `, { 
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🗑 Disconnect", callback_data: `disconnect_${phoneNumber}` }],
+                            [{ text: "📋 My Connections", callback_data: "list_my_connections" }]
+                        ]
+                    }
+                });
+                return;
+            }
         }
+        
+        // Session exists but not connected to this user
+        bot.sendMessage(chatId, `
+╔═══════════════════╗
+║  ℹ️ SESSION EXISTS  ║
+╚═══════════════════╝
+
+📱 *Number:* \`${phoneNumber}\`
+📁 *Status:* Session file already exists
+
+*This usually means:*
+• Another user is using this number
+• You disconnected but session wasn't deleted
+• Previous pairing attempt failed
+
+*Options:*
+1. Use /delpair to remove existing session
+2. Then pair again with /pair
+
+━━━━━━━━━━━━━━━━━━━
+        `, { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "🗑 Delete Session", callback_data: `disconnect_${phoneNumber}` }],
+                    [{ text: "📋 My Connections", callback_data: "list_my_connections" }]
+                ]
+            }
+        });
+        return;
     }
+
+    // Set rate limit (2 minutes)
+    requestLimits.set(userKey, true);
 
     // Start pairing process
     bot.sendMessage(chatId, `
-Processing...
+╔═══════════════════╗
+║  🔄 PROCESSING...  ║
+╚═══════════════════╝
 
-Number: \`${phoneNumber}\`
-Status: Initializing connection...
+📱 *Number:* \`${phoneNumber}\`
+⏳ *Status:* Generating pairing code...
 
-Please wait...
+━━━━━━━━━━━━━━━━━━━
+*Please wait 2-3 seconds...*
     `, { parse_mode: 'Markdown' });
 
     try {
         await whatsappManager.requestPairingCode(phoneNumber, chatId);
     } catch (error) {
-        bot.sendMessage(chatId, `Error: ${error.message || 'Unknown error'}`);
+        bot.sendMessage(chatId, `❌ Error: ${error.message || 'Unknown error'}`);
+        requestLimits.del(userKey);
     }
 });
 
 // /delpair command
 bot.onText(/\/delpair (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
-    const phoneNumber = match[1].trim();
+    const phoneNumber = match[1]?.trim();
+
+    if (!phoneNumber) {
+        bot.sendMessage(chatId, `
+╔═══════════════════╗
+║  ❌ INVALID FORMAT  ║
+╚═══════════════════╝
+
+*Please provide a phone number:*
+
+✅ *Example:* \`/delpair 2547xxxxxx\`
+
+━━━━━━━━━━━━━━━━━━━
+        `, { parse_mode: 'Markdown' });
+        return;
+    }
 
     const success = whatsappManager.disconnect(phoneNumber);
 
     if (success) {
-        // Remove from connected users
         if (connectedUsers[chatId]) {
             connectedUsers[chatId] = connectedUsers[chatId].filter(u => u.phoneNumber !== phoneNumber);
             if (connectedUsers[chatId].length === 0) {
@@ -805,15 +908,35 @@ bot.onText(/\/delpair (.+)/, async (msg, match) => {
         }
 
         bot.sendMessage(chatId, `
-Disconnected Successfully
+╔═══════════════════╗
+║  ✅ DISCONNECTED   ║
+╚═══════════════════╝
 
-Number: \`${phoneNumber}\`
-Status: Session removed
+📱 *Number:* \`${phoneNumber}\`
+✅ *Status:* Session removed successfully
 
-You can now pair again with /pair
-        `, { parse_mode: 'Markdown' });
+━━━━━━━━━━━━━━━━━━━
+💡 *You can now pair again with /pair*
+        `, { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "📱 Pair Again", callback_data: "pair_info" }],
+                    [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                ]
+            }
+        });
     } else {
-        bot.sendMessage(chatId, 'Failed to disconnect. Session may not exist.');
+        bot.sendMessage(chatId, `
+╔═══════════════════╗
+║  ❌ NOT FOUND      ║
+╚═══════════════════╝
+
+📱 *Number:* \`${phoneNumber}\`
+❌ *Status:* No active session found
+
+━━━━━━━━━━━━━━━━━━━
+        `, { parse_mode: 'Markdown' });
     }
 });
 
@@ -824,35 +947,51 @@ bot.onText(/\/listpaired/, (msg) => {
 
     if (userConnections.length === 0) {
         bot.sendMessage(chatId, `
-No Active Connections
+╔═══════════════════╗
+║  📱 NO CONNECTIONS  ║
+╚═══════════════════╝
 
-You don't have any connected WhatsApp numbers.
+❌ *You don't have any connected WhatsApp numbers.*
 
-Use /pair to connect one.
-        `, { parse_mode: 'Markdown' });
+━━━━━━━━━━━━━━━━━━━
+💡 *Use /pair to connect one.*
+        `, { 
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                    [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                ]
+            }
+        });
         return;
     }
 
-    let connectionList = `CONNECTIONS\n\n`;
+    let connectionList = `
+╔═══════════════════╗
+║  📱 MY CONNECTIONS  ║
+╚═══════════════════╝
+
+`;
 
     userConnections.forEach((conn, index) => {
-        const status = conn.status === 'online' ? 'Online' : 'Offline';
-        connectionList += `${index + 1}. ${status} - \`${conn.phoneNumber}\`\n`;
+        const status = conn.status === 'online' ? '🟢 Online' : '🔴 Offline';
+        const timeAgo = conn.connectedAt ? moment(conn.connectedAt).fromNow() : 'N/A';
+        connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n   📅 ${timeAgo}\n\n`;
     });
 
-    connectionList += `\nTotal: ${userConnections.length} connection(s)`;
+    connectionList += `━━━━━━━━━━━━━━━━━━━\n📊 *Total:* ${userConnections.length} connection(s)`;
 
     const buttons = userConnections.map(conn => [
-        { text: `Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
+        { text: `❌ Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
     ]);
+    buttons.push([{ text: "🔄 Refresh", callback_data: "refresh_connections" }]);
+    buttons.push([{ text: "🏠 Main Menu", callback_data: "main_menu" }]);
 
     bot.sendMessage(chatId, connectionList, {
         parse_mode: 'Markdown',
         reply_markup: {
-            inline_keyboard: [
-                ...buttons,
-                [{ text: "Refresh", callback_data: "refresh_connections" }]
-            ]
+            inline_keyboard: buttons
         }
     });
 });
@@ -869,17 +1008,21 @@ bot.onText(/\/botinfo/, (msg) => {
     const activeConnectionsCount = whatsappManager.getAllConnections().length;
 
     const infoText = `
-BOT INFO
+╔═══════════════════╗
+║   📊 BOT INFO      ║
+╚═══════════════════╝
 
-Uptime: ${days}d ${hours}h ${minutes}m
-Users: ${userIds.length}
-Connections: ${totalConnections}
-Active: ${activeConnectionsCount}
-Status: Online
+⏱ *Uptime:* ${days}d ${hours}h ${minutes}m
+👥 *Users:* ${userIds.length}
+🔗 *Connections:* ${totalConnections}
+🟢 *Active:* ${activeConnectionsCount}
+📡 *Status:* Online ✅
 
-Developer: @Digladoo
-Version: 2.0.0
-Platform: Node.js
+━━━━━━━━━━━━━━━━━━━
+🛠 *Developer:* @Digladoo
+📦 *Version:* 2.0.0
+🌐 *Platform:* Node.js
+━━━━━━━━━━━━━━━━━━━
 `;
 
     bot.sendMessage(chatId, infoText, {
@@ -887,9 +1030,10 @@ Platform: Node.js
         reply_markup: {
             inline_keyboard: [
                 [
-                    { text: "Support", url: "https://t.me/Davexgroupchart" },
-                    { text: "Updates", url: "https://t.me/DavexTech" }
-                ]
+                    { text: "💬 Support", url: "https://t.me/Davexgroupchart" },
+                    { text: "📢 Updates", url: "https://t.me/DavexTech" }
+                ],
+                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
             ]
         }
     });
@@ -899,12 +1043,22 @@ Platform: Node.js
 bot.onText(/\/ping/, async (msg) => {
     const chatId = msg.chat.id;
     const start = Date.now();
-    const sent = await bot.sendMessage(chatId, 'Pinging...', { parse_mode: 'Markdown' });
+    const sent = await bot.sendMessage(chatId, '🏓 *Pinging...*', { parse_mode: 'Markdown' });
     const end = Date.now();
     const responseTime = end - start;
 
     bot.editMessageText(
-        `Pong!\n\nSpeed: ${responseTime}ms`,
+        `
+╔═══════════════════╗
+║   🏓 PONG!         ║
+╚═══════════════════╝
+
+⚡ *Speed:* ${responseTime}ms
+📡 *Status:* Online ✅
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Bot is responding normally*
+        `,
         {
             chat_id: chatId,
             message_id: sent.message_id,
@@ -923,17 +1077,28 @@ bot.onText(/\/uptime/, (msg) => {
     const seconds = Math.floor(uptime % 60);
 
     const uptimeMessage = `
-BOT UPTIME
+╔═══════════════════╗
+║   ⏱ BOT UPTIME    ║
+╚═══════════════════╝
 
-Days: ${days}
-Hours: ${hours}
-Minutes: ${minutes}
-Seconds: ${seconds}
+📆 *Days:* ${days}
+🕐 *Hours:* ${hours}
+⏰ *Minutes:* ${minutes}
+⏱ *Seconds:* ${seconds}
 
-Status: Running
+━━━━━━━━━━━━━━━━━━━
+✅ *Status:* Running Smoothly
+━━━━━━━━━━━━━━━━━━━
 `;
 
-    bot.sendMessage(chatId, uptimeMessage, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, uptimeMessage, { 
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+            ]
+        }
+    });
 });
 
 // /getmyid command
@@ -943,14 +1108,81 @@ bot.onText(/\/getmyid/, (msg) => {
     const username = msg.from.username ? `@${msg.from.username}` : 'No username';
 
     const idMessage = `
-YOUR INFO
+╔═══════════════════╗
+║   👤 YOUR INFO     ║
+╚═══════════════════╝
 
-ID: \`${userId}\`
-Username: ${username}
-Name: ${msg.from.first_name || 'N/A'}
+🆔 *ID:* \`${userId}\`
+📝 *Username:* ${username}
+👤 *Name:* ${msg.from.first_name || 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Save this ID for support requests*
+━━━━━━━━━━━━━━━━━━━
 `;
 
-    bot.sendMessage(chatId, idMessage, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, idMessage, { 
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+            ]
+        }
+    });
+});
+
+// /broadcast command (Admin only)
+bot.onText(/\/broadcast (.+)/, async (msg, match) => {
+    const chatId = msg.chat.id;
+    const userId = msg.from.id;
+    const message = match[1].trim();
+
+    const OWNER_ID = process.env.OWNER_ID || 'YOUR_TELEGRAM_ID';
+    if (userId.toString() !== OWNER_ID.toString()) {
+        bot.sendMessage(chatId, '❌ *Access Denied:* This command is for admins only.', { parse_mode: 'Markdown' });
+        return;
+    }
+
+    const totalConnections = whatsappManager.getAllConnections().length;
+    
+    if (totalConnections === 0) {
+        bot.sendMessage(chatId, '❌ *No active connections to broadcast to.*', { parse_mode: 'Markdown' });
+        return;
+    }
+
+    const sent = await bot.sendMessage(chatId, `📢 *Broadcasting to ${totalConnections} connections...*`, { parse_mode: 'Markdown' });
+    
+    try {
+        const results = await whatsappManager.broadcastMessage(message);
+        const success = results.filter(r => r.status === 'success').length;
+        const failed = results.filter(r => r.status === 'failed').length;
+
+        bot.editMessageText(
+            `
+╔═══════════════════╗
+║  📢 BROADCAST RESULTS  ║
+╚═══════════════════╝
+
+✅ *Successful:* ${success}
+❌ *Failed:* ${failed}
+📊 *Total Sent:* ${totalConnections}
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Message broadcast completed*
+            `,
+            {
+                chat_id: chatId,
+                message_id: sent.message_id,
+                parse_mode: 'Markdown'
+            }
+        );
+    } catch (error) {
+        bot.editMessageText(`❌ *Broadcast failed:* ${error.message}`, {
+            chat_id: chatId,
+            message_id: sent.message_id,
+            parse_mode: 'Markdown'
+        });
+    }
 });
 
 // Callback query handlers
@@ -958,62 +1190,75 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
     const messageId = query.message.message_id;
+    const userId = query.from.id;
 
     try {
+        await bot.answerCallbackQuery(query.id);
+
         if (data === 'main_menu') {
             const menuText = `
-MAIN MENU
+╔═══════════════════╗
+║    🏠 MAIN MENU    ║
+╚═══════════════════╝
 
-WhatsApp Pairing Bot
+📱 *WhatsApp Pairing Bot*
+━━━━━━━━━━━━━━━━━━━
 
 🔹 Connect your WhatsApp
 🔹 Manage connections
 🔹 Get support
 
-Select an option below:
+━━━━━━━━━━━━━━━━━━━
+💡 Select an option below:
 `;
-
+            
             const opts = {
                 message_id: messageId,
                 chat_id: chatId,
                 parse_mode: 'Markdown',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "Pair WhatsApp", callback_data: "pair_info" }],
-                        [{ text: "My Connections", callback_data: "list_my_connections" }],
-                        [{ text: "Bot Info", callback_data: "bot_info" }],
-                        [{ text: "Support Group", url: "https://t.me/Davexgroupchart" }],
-                        [{ text: "Channel", url: "https://t.me/DavexTech" }]
+                        [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                        [{ text: "📋 My Connections", callback_data: "list_my_connections" }],
+                        [{ text: "ℹ️ Bot Info", callback_data: "bot_info" }],
+                        [{ text: "💬 Support Group", url: "https://t.me/Davexgroupchart" }],
+                        [{ text: "📢 Channel", url: "https://t.me/DavexTech" }]
                     ]
                 }
             };
-
+            
             bot.editMessageText(menuText, opts);
 
         } else if (data === 'pair_info') {
             const pairText = `
-HOW TO PAIR
+╔═══════════════════╗
+║   📱 HOW TO PAIR   ║
+╚═══════════════════╝
 
-Step-by-step guide:
+*Step-by-step guide:*
 
-1. Use command: \`/pair <number>\`
-2. Example: \`/pair 254712345678\`
-3. Get your pairing code
-4. Enter code in WhatsApp
+1️⃣ Use command: \`/pair <number>\`
+2️⃣ Example: \`/pair 2547xxxxxxxx\`
+3️⃣ Get your pairing code
+4️⃣ Enter code in WhatsApp
 
-Important Notes:
+━━━━━━━━━━━━━━━━━━━
+⚠️ *Important Notes:*
 • Use international format (254...)
 • No + or 0 prefix needed
 • One connection per number
-`;
 
+━━━━━━━━━━━━━━━━━━━
+`;
+            
             bot.editMessageText(pairText, {
                 message_id: messageId,
                 chat_id: chatId,
                 parse_mode: 'Markdown',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: "Back to Menu", callback_data: "main_menu" }]
+                        [{ text: "📱 Start Pairing", callback_data: "start_pairing" }],
+                        [{ text: "🔙 Back to Menu", callback_data: "main_menu" }]
                     ]
                 }
             });
@@ -1022,26 +1267,51 @@ Important Notes:
             const userConnections = connectedUsers[chatId] || [];
 
             if (userConnections.length === 0) {
-                bot.answerCallbackQuery(query.id, {
-                    text: "You don't have any active connections",
-                    show_alert: true
-                });
+                bot.editMessageText(
+                    `
+╔═══════════════════╗
+║  📱 NO CONNECTIONS  ║
+╚═══════════════════╝
+
+❌ *You don't have any active connections.*
+
+💡 *Use /pair to connect WhatsApp*
+                    `,
+                    {
+                        message_id: messageId,
+                        chat_id: chatId,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                            ]
+                        }
+                    }
+                );
                 return;
             }
 
-            let connectionList = `CONNECTIONS\n\n`;
+            let connectionList = `
+╔═══════════════════╗
+║  📱 MY CONNECTIONS  ║
+╚═══════════════════╝
+
+`;
 
             userConnections.forEach((conn, index) => {
-                const status = conn.status === 'online' ? 'Online' : 'Offline';
-                connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n`;
+                const status = conn.status === 'online' ? '🟢 Online' : '🔴 Offline';
+                const timeAgo = conn.connectedAt ? moment(conn.connectedAt).fromNow() : 'N/A';
+                connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n   📅 ${timeAgo}\n\n`;
             });
 
-            connectionList += `\nTotal: ${userConnections.length} connection(s)`;
+            connectionList += `━━━━━━━━━━━━━━━━━━━\n📊 *Total:* ${userConnections.length} connection(s)`;
 
             const buttons = userConnections.map(conn => [
-                { text: `Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
+                { text: `❌ Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
             ]);
-            buttons.push([{ text: "Back to Menu", callback_data: "main_menu" }]);
+            buttons.push([{ text: "🔄 Refresh", callback_data: "refresh_connections" }]);
+            buttons.push([{ text: "🏠 Main Menu", callback_data: "main_menu" }]);
 
             bot.editMessageText(connectionList, {
                 message_id: messageId,
@@ -1050,45 +1320,11 @@ Important Notes:
                 reply_markup: { inline_keyboard: buttons }
             });
 
-        } else if (data === 'bot_info') {
-            const uptime = process.uptime();
-            const days = Math.floor(uptime / (60 * 60 * 24));
-            const hours = Math.floor((uptime % (60 * 60 * 24)) / (60 * 60));
-            const minutes = Math.floor((uptime % (60 * 60)) / 60);
-
-            const totalConnections = Object.values(connectedUsers).reduce((acc, curr) => acc + curr.length, 0);
-            const activeConnectionsCount = whatsappManager.getAllConnections().length;
-
-            const infoText = `
-BOT INFO
-
-Uptime: ${days}d ${hours}h ${minutes}m
-Users: ${userIds.length}
-Connections: ${totalConnections}
-Active: ${activeConnectionsCount}
-Status: Online
-
-Developer: @Digladoo
-Version: 2.0.0
-`;
-
-            bot.editMessageText(infoText, {
-                message_id: messageId,
-                chat_id: chatId,
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: "Back to Menu", callback_data: "main_menu" }]
-                    ]
-                }
-            });
-
         } else if (data.startsWith('disconnect_')) {
             const phoneNumber = data.replace('disconnect_', '');
             const success = whatsappManager.disconnect(phoneNumber);
 
             if (success) {
-                // Remove from connected users
                 if (connectedUsers[chatId]) {
                     connectedUsers[chatId] = connectedUsers[chatId].filter(u => u.phoneNumber !== phoneNumber);
                     if (connectedUsers[chatId].length === 0) {
@@ -1097,138 +1333,162 @@ Version: 2.0.0
                     saveConnectedUsers();
                 }
 
-                bot.answerCallbackQuery(query.id, {
-                    text: `Disconnected ${phoneNumber} successfully!`,
-                    show_alert: true
-                });
+                bot.editMessageText(
+                    `
+╔═══════════════════╗
+║  ✅ DISCONNECTED   ║
+╚═══════════════════╝
 
-                // Update the message
-                const userConnections = connectedUsers[chatId] || [];
-                if (userConnections.length === 0) {
-                    bot.editMessageText("No active connections remaining.", {
-                        message_id: messageId,
-                        chat_id: chatId
-                    });
-                } else {
-                    let connectionList = `CONNECTIONS\n\n`;
+📱 *Number:* \`${phoneNumber}\`
+✅ *Status:* Disconnected successfully
 
-                    userConnections.forEach((conn, index) => {
-                        const status = conn.status === 'online' ? 'Online' : 'Offline';
-                        connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n`;
-                    });
-
-                    connectionList += `\nTotal: ${userConnections.length} connection(s)`;
-
-                    const buttons = userConnections.map(conn => [
-                        { text: `Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
-                    ]);
-                    buttons.push([{ text: "Back to Menu", callback_data: "main_menu" }]);
-
-                    bot.editMessageText(connectionList, {
+━━━━━━━━━━━━━━━━━━━
+💡 *Session removed*
+                    `,
+                    {
                         message_id: messageId,
                         chat_id: chatId,
                         parse_mode: 'Markdown',
-                        reply_markup: { inline_keyboard: buttons }
-                    });
-                }
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "📋 View Connections", callback_data: "list_my_connections" }],
+                                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                            ]
+                        }
+                    }
+                );
             } else {
-                bot.answerCallbackQuery(query.id, {
-                    text: `Failed to disconnect ${phoneNumber}`,
-                    show_alert: true
-                });
+                bot.editMessageText(
+                    '❌ *Failed to disconnect. Session may not exist.*',
+                    {
+                        message_id: messageId,
+                        chat_id: chatId,
+                        parse_mode: 'Markdown'
+                    }
+                );
             }
 
         } else if (data === 'verify_membership') {
-            const membership = await checkMembership(query.from.id);
+            const membership = await checkMembership(userId);
 
             if (membership.bothJoined) {
-                bot.answerCallbackQuery(query.id, {
-                    text: "Membership verified! You can now use /pair",
-                    show_alert: true
-                });
+                bot.editMessageText(
+                    '✅ *Membership verified!*\n\nYou can now use `/pair` to connect WhatsApp.',
+                    {
+                        message_id: messageId,
+                        chat_id: chatId,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                            ]
+                        }
+                    }
+                );
             } else {
-                bot.answerCallbackQuery(query.id, {
-                    text: "Please join both channel and group first",
-                    show_alert: true
-                });
+                bot.editMessageText(
+                    '❌ *Please join both channel and group first.*',
+                    {
+                        message_id: messageId,
+                        chat_id: chatId,
+                        parse_mode: 'Markdown'
+                    }
+                );
             }
 
         } else if (data.startsWith('copy_')) {
             const code = data.replace('copy_', '');
-            bot.answerCallbackQuery(query.id, {
-                text: `Code ${code} copied to clipboard!`,
-                show_alert: true
-            });
+            bot.editMessageText(
+                `📋 *Code copied to clipboard!*\n\n🔢 \`${code}\``,
+                {
+                    message_id: messageId,
+                    chat_id: chatId,
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                        ]
+                    }
+                }
+            );
 
         } else if (data.startsWith('regenerate_')) {
             const phoneNumber = data.replace('regenerate_', '');
-            bot.answerCallbackQuery(query.id, {
-                text: "Regenerating pairing code...",
-                show_alert: true
-            });
+            
+            bot.editMessageText(
+                `🔄 *Regenerating pairing code for:*\n\`${phoneNumber}\``,
+                {
+                    message_id: messageId,
+                    chat_id: chatId,
+                    parse_mode: 'Markdown'
+                }
+            );
 
-            // Disconnect existing
             whatsappManager.disconnect(phoneNumber);
 
-            // Request new code
             setTimeout(async () => {
                 try {
                     await whatsappManager.requestPairingCode(phoneNumber, chatId);
                 } catch (error) {
-                    bot.sendMessage(chatId, `Error regenerating code: ${error.message}`);
+                    bot.sendMessage(chatId, `❌ *Error regenerating code:* ${error.message}`, { parse_mode: 'Markdown' });
                 }
             }, 1000);
 
         } else if (data === 'refresh_connections') {
-            bot.answerCallbackQuery(query.id, {
-                text: "Refreshing connections...",
-                show_alert: false
-            });
-
-            // Refresh list
-            bot.deleteMessage(chatId, messageId);
-            const msg = await bot.sendMessage(chatId, "Refreshing...", { parse_mode: 'Markdown' });
-
             const userConnections = connectedUsers[chatId] || [];
 
             if (userConnections.length === 0) {
-                bot.editMessageText("No active connections.", {
-                    message_id: msg.message_id,
-                    chat_id: chatId
-                });
+                bot.editMessageText(
+                    '📱 *No active connections found.*',
+                    {
+                        message_id: messageId,
+                        chat_id: chatId,
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "📱 Pair WhatsApp", callback_data: "pair_info" }],
+                                [{ text: "🏠 Main Menu", callback_data: "main_menu" }]
+                            ]
+                        }
+                    }
+                );
                 return;
             }
 
-            let connectionList = `CONNECTIONS\n\n`;
+            let connectionList = `
+╔═══════════════════╗
+║  📱 REFRESHED      ║
+╚═══════════════════╝
+
+`;
 
             userConnections.forEach((conn, index) => {
-                const status = conn.status === 'online' ? 'Online' : 'Offline';
-                connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n`;
+                const status = conn.status === 'online' ? '🟢 Online' : '🔴 Offline';
+                const timeAgo = conn.connectedAt ? moment(conn.connectedAt).fromNow() : 'N/A';
+                connectionList += `${index + 1}. ${status} \`${conn.phoneNumber}\`\n   📅 ${timeAgo}\n\n`;
             });
 
-            connectionList += `\nTotal: ${userConnections.length} connection(s)`;
+            connectionList += `━━━━━━━━━━━━━━━━━━━\n📊 *Total:* ${userConnections.length} connection(s)`;
 
             const buttons = userConnections.map(conn => [
-                { text: `Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
+                { text: `❌ Disconnect ${conn.phoneNumber}`, callback_data: `disconnect_${conn.phoneNumber}` }
             ]);
+            buttons.push([{ text: "🔄 Refresh Again", callback_data: "refresh_connections" }]);
+            buttons.push([{ text: "🏠 Main Menu", callback_data: "main_menu" }]);
 
             bot.editMessageText(connectionList, {
-                message_id: msg.message_id,
+                message_id: messageId,
                 chat_id: chatId,
                 parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        ...buttons,
-                        [{ text: "Refresh", callback_data: "refresh_connections" }]
-                    ]
-                }
+                reply_markup: { inline_keyboard: buttons }
             });
         }
 
     } catch (error) {
         console.error(chalk.red('Callback query error:', error));
         bot.answerCallbackQuery(query.id, {
-            text: "An error occurred",
+            text: "❌ An error occurred",
             show_alert: true
         });
     }
@@ -1269,14 +1529,18 @@ async function loadExistingSessions() {
 
 // Start the system
 console.log(chalk.green.bold(`
-TELEGRAM BOT STARTED
+╔════════════════════════════╗
+║  ✅ TELEGRAM BOT STARTED    ║
+╚════════════════════════════╝
 
-Telegram Bot: Active
-WhatsApp Bridge: Ready
-Time: ${moment().format('HH:mm:ss')}
-Date: ${moment().format('DD/MM/YYYY')}
+📱 Telegram Bot: Active
+🔗 WhatsApp Bridge: Ready
+⏰ Time: ${moment().format('HH:mm:ss')}
+📅 Date: ${moment().format('DD/MM/YYYY')}
 
-Developer: @Digladoo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🛠 Developer: @Digladoo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `));
 
 // Load existing sessions after a delay
