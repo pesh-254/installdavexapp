@@ -931,7 +931,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
               //      await sock.sendMessage(chatId, { text: 'Only owner or sudo can use pmblocker.' }, { quoted: message });
                   //  commandExecuted = true;
                   //  break;
-                }
+                //}
               //  await pmblockerCommand(sock, chatId, message, fullArgs);
               //  commandExecuted = true;
               //  break;
@@ -1700,6 +1700,8 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await groupJidCommand(sock, chatId, message);
                 break;
 
+            case 'autotype':
+            case 'typing':
             case 'autotyping':
                 await autotypingCommand(sock, chatId, message);
                 commandExecuted = true;
@@ -1833,15 +1835,17 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await piesAlias(sock, chatId, message, 'hijab');
                 commandExecuted = true;
                 break;
-            case 'update':
-            case 'start':
-            case 'restart':
-                {
-                    const zipArg = args[0] && args[0].startsWith('http') ? args[0] : '';
-                    await updateCommand(sock, chatId, message, senderIsSudo, zipArg);
-                }
-                commandExecuted = true;
-                break;
+            //case 'update':
+           // case 'start':
+            //case 'restart':
+              //  {
+                  //  const zipArg = args[0] && args[0].startsWith('http') ? args[0] : '';
+                //    await updateCommand(sock, chatId, message, senderIsSudo, zipArg);
+              //  }
+               // commandExecuted = true;
+               // break;
+
+
             case 'removebg':
             case 'rmbg':
             case 'nobg':
