@@ -1,12 +1,6 @@
 const axios = require('axios');
 const yts = require('yt-search');
 
-// Meta API configuration
-const META_API = {
-    baseURL: "https://meta-api.zone.id",
-    endpoint: "/downloader/youtube"
-};
-
 const AXIOS_DEFAULTS = {
     timeout: 60000,
     headers: {
@@ -15,8 +9,8 @@ const AXIOS_DEFAULTS = {
     }
 };
 
+// Added fakeContact function
 function createFakeContact(message) {
-    const phone = message.key.participant?.split('@')[0] || message.key.remoteJid.split('@')[0];
     return {
         key: {
             participants: "0@s.whatsapp.net",
@@ -25,8 +19,8 @@ function createFakeContact(message) {
         },
         message: {
             contactMessage: {
-                displayName: "DAVE-X",
-                vcard: `BEGIN:VCARD\nVERSION:3.0\nN:Dave-X;;;\nFN:DAVE-X\nTEL;waid=${phone}:${phone}\nEND:VCARD`
+                displayName: "Davex Music",
+                vcard: `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Music;;;\nFN:Davex Music Player\nitem1.TEL;waid=${message.key.participant?.split('@')[0] || message.key.remoteJid.split('@')[0]}:${message.key.participant?.split('@')[0] || message.key.remoteJid.split('@')[0]}\nitem1.X-ABLabel:Music Bot\nEND:VCARD`
             }
         },
         participant: "0@s.whatsapp.net"
@@ -48,54 +42,54 @@ async function tryRequest(getter, attempts = 3) {
     throw lastError;
 }
 
-// FIXED: Changed to use Meta API with proper response structure
-async function getMetaVideoByUrl(youtubeUrl) {
-    const apiUrl = `${META_API.baseURL}${META_API.endpoint}?url=${encodeURIComponent(youtubeUrl)}&format=720`;
+async function getYupraVideoByUrl(youtubeUrl) {
+    const apiUrl = `https://api.yupra.my.id/api/downloader/ytmp4?url=${encodeURIComponent(youtubeUrl)}`;
     const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
-    
-    // Check if response matches Meta API structure
-    if (res?.data?.status === true && res.data.result?.download) {
+    if (res?.data?.success && res?.data?.data?.download_url) {
         return {
-            download: res.data.result.download,
-            title: res.data.result.title,
-            thumbnail: res.data.result.thumbnail,
-            quality: res.data.result.quality || '720'
+            download: res.data.data.download_url,
+            title: res.data.data.title,
+            thumbnail: res.data.data.thumbnail
         };
     }
-    throw new Error('Meta API no download');
+    throw new Error('Yupra returned no download');
 }
 
-// Keep your original fallback function (unchanged)
 async function getOkatsuVideoByUrl(youtubeUrl) {
     const apiUrl = `https://okatsu-rolezapiiz.vercel.app/downloader/ytmp4?url=${encodeURIComponent(youtubeUrl)}`;
     const res = await tryRequest(() => axios.get(apiUrl, AXIOS_DEFAULTS));
+    // shape: { status, creator, url, result: { status, title, mp4 } }
     if (res?.data?.result?.mp4) {
         return { download: res.data.result.mp4, title: res.data.result.title };
     }
-    throw new Error('Okatsu no mp4');
+    throw new Error('Okatsu ytmp4 returned no mp4');
 }
 
 async function videoCommand(sock, chatId, message) {
-    const fkontak = createFakeContact(message);
-
+    // Added this line
+    const fakeContact = createFakeContact(message);
+    
     try {
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
         const searchQuery = text.split(' ').slice(1).join(' ').trim();
-
+        
+        
         if (!searchQuery) {
-            await sock.sendMessage(chatId, { text: 'What video to download?' }, { quoted: fkontak });
+            await sock.sendMessage(chatId, { text: 'What video do you want to download?' }, { quoted: fakeContact });
             return;
         }
 
+        // Determine if input is a YouTube link
         let videoUrl = '';
         let videoTitle = '';
         let videoThumbnail = '';
         if (searchQuery.startsWith('http://') || searchQuery.startsWith('https://')) {
             videoUrl = searchQuery;
         } else {
+            // Search YouTube for the video
             const { videos } = await yts(searchQuery);
             if (!videos || videos.length === 0) {
-                await sock.sendMessage(chatId, { text: 'No videos found.' }, { quoted: fkontak });
+                await sock.sendMessage(chatId, { text: 'No videos found!' }, { quoted: fakeContact });
                 return;
             }
             videoUrl = videos[0].url;
@@ -103,42 +97,47 @@ async function videoCommand(sock, chatId, message) {
             videoThumbnail = videos[0].thumbnail;
         }
 
+        // Send thumbnail immediately
         try {
             const ytId = (videoUrl.match(/(?:youtu\.be\/|v=)([a-zA-Z0-9_-]{11})/) || [])[1];
             const thumb = videoThumbnail || (ytId ? `https://i.ytimg.com/vi/${ytId}/sddefault.jpg` : undefined);
+            const captionTitle = videoTitle || searchQuery;
             if (thumb) {
                 await sock.sendMessage(chatId, {
                     image: { url: thumb },
-                    caption: `Downloading video...`
-                }, { quoted: fkontak });
+                    caption: `*${captionTitle}*\nDownloading...`
+                }, { quoted: fakeContact });
             }
-        } catch (e) { console.error('Thumb error:', e?.message || e); }
+        } catch (e) { console.error('[VIDEO] thumb error:', e?.message || e); }
+        
 
+        // Validate YouTube URL
         let urls = videoUrl.match(/(?:https?:\/\/)?(?:youtu\.be\/|(?:www\.|m\.)?youtube\.com\/(?:watch\?v=|v\/|embed\/|shorts\/|playlist\?list=)?)([a-zA-Z0-9_-]{11})/gi);
         if (!urls) {
-            await sock.sendMessage(chatId, { text: 'Invalid YouTube link.' }, { quoted: fkontak });
+            await sock.sendMessage(chatId, { text: 'This is not a valid YouTube link!' }, { quoted: fakeContact });
             return;
         }
 
+        // Get video: try Yupra first, then Okatsu fallback
         let videoData;
         try {
-            // FIXED: Using Meta API instead of Izumi
-            videoData = await getMetaVideoByUrl(videoUrl);
+            videoData = await getYupraVideoByUrl(videoUrl);
         } catch (e1) {
-            // Fallback to Okatsu if Meta fails
             videoData = await getOkatsuVideoByUrl(videoUrl);
         }
 
+        // Send video directly using the download URL
         await sock.sendMessage(chatId, {
             video: { url: videoData.download },
             mimetype: 'video/mp4',
             fileName: `${videoData.title || videoTitle || 'video'}.mp4`,
-            caption: `${videoData.title || videoTitle || 'Video'}\nQuality: ${videoData.quality || '720p'}\nDownloaded by DAVE-X`
-        }, { quoted: fkontak });
+            caption: `*${videoData.title || videoTitle || 'Video'}*\n\n> *_Downloaded by Knight Bot MD_*`
+        }, { quoted: fakeContact });
+
 
     } catch (error) {
-        console.error('Video command error:', error?.message || error);
-        await sock.sendMessage(chatId, { text: 'Download failed: ' + (error?.message || 'Error') }, { quoted: fkontak });
+        console.error('[VIDEO] Command Error:', error?.message || error);
+        await sock.sendMessage(chatId, { text: 'Download failed: ' + (error?.message || 'Unknown error') }, { quoted: fakeContact });
     }
 }
 
