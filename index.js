@@ -105,10 +105,10 @@ async function checkMembership(userId) {
     try {
         const channelMember = await bot.getChatMember(REQUIRED_CHANNEL, userId);
         const groupMember = await bot.getChatMember(REQUIRED_GROUP, userId);
-        
+
         const isChannelMember = ['member', 'administrator', 'creator'].includes(channelMember.status);
         const isGroupMember = ['member', 'administrator', 'creator'].includes(groupMember.status);
-        
+
         return { isChannelMember, isGroupMember, bothJoined: isChannelMember && isGroupMember };
     } catch (error) {
         console.error(chalk.red('❌ Error checking membership:', error));
@@ -121,6 +121,8 @@ class WhatsAppBotManager {
     constructor() {
         this.connections = new Map();
         this.activeConnections = new Map();
+        this.reconnectionAttempts = new Map();
+        this.maxReconnectionAttempts = 5;
     }
 
     // Load WhatsApp bot dependencies
@@ -210,7 +212,7 @@ class WhatsAppBotManager {
     // Create WhatsApp connection
     async createConnection(phoneNumber, telegramChatId) {
         const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
-        
+
         if (!fs.existsSync(sessionPath)) {
             fs.mkdirSync(sessionPath, { recursive: true });
         }
@@ -219,9 +221,9 @@ class WhatsAppBotManager {
             const { version } = await fetchLatestBaileysVersion();
             const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
             const msgRetryCounterCache = new NodeCache();
-            
+
             const conn = makeWASocket({
-                version: [2, 3000, 1027934701],
+                version: version,
                 logger: pino({ level: 'silent' }),
                 printQRInTerminal: false,
                 browser: ["Ubuntu", "Chrome", "20.0.00"],
@@ -284,36 +286,40 @@ class WhatsAppBotManager {
 
             // --- CONNECTION UPDATE HANDLER ---
             conn.ev.on('connection.update', async (update) => {
-                const { connection, lastDisconnect } = update;
-                
+                const { connection, lastDisconnect, qr } = update;
+
                 if (connection === 'open') {
+                    // Reset reconnection attempts on successful connection
+                    this.reconnectionAttempts.delete(phoneNumber);
+                    
                     await saveCreds();
                     console.log(chalk.green(`✅ WhatsApp connected: ${phoneNumber}`));
-                    
+
                     // Update connected users
                     if (!connectedUsers[telegramChatId]) {
                         connectedUsers[telegramChatId] = [];
                     }
-                    
+
                     const existingIndex = connectedUsers[telegramChatId].findIndex(u => u.phoneNumber === phoneNumber);
                     if (existingIndex === -1) {
                         connectedUsers[telegramChatId].push({ 
                             phoneNumber, 
                             connectedAt: new Date().toISOString(),
-                            status: 'online'
+                            status: 'online',
+                            telegramChatId
                         });
                     } else {
                         connectedUsers[telegramChatId][existingIndex].status = 'online';
                         connectedUsers[telegramChatId][existingIndex].lastConnected = new Date().toISOString();
                     }
                     saveConnectedUsers();
-                    
+
                     // Send welcome message after connection
                     await this.sendWelcomeMessage(conn, phoneNumber, telegramChatId);
-                    
+
                 } else if (connection === 'close') {
                     console.log(chalk.yellow(`⚠️ WhatsApp disconnected: ${phoneNumber}`));
-                    
+
                     // Update status
                     if (connectedUsers[telegramChatId]) {
                         const userIndex = connectedUsers[telegramChatId].findIndex(u => u.phoneNumber === phoneNumber);
@@ -323,27 +329,90 @@ class WhatsAppBotManager {
                             saveConnectedUsers();
                         }
                     }
+
+                    // Clean up current connection
+                    this.connections.delete(phoneNumber);
+                    this.activeConnections.delete(phoneNumber);
+
+                    const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
                     
-                    if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
-                        // Auto-reconnect after 5 seconds
-                        setTimeout(() => {
-                            console.log(chalk.blue(`🔄 Attempting to reconnect ${phoneNumber}...`));
-                            this.createConnection(phoneNumber, telegramChatId);
-                        }, 5000);
+                    if (shouldReconnect) {
+                        // Increment reconnection attempts
+                        const attempts = (this.reconnectionAttempts.get(phoneNumber) || 0) + 1;
+                        this.reconnectionAttempts.set(phoneNumber, attempts);
+                        
+                        if (attempts <= this.maxReconnectionAttempts) {
+                            // Exponential backoff: 5, 10, 20, 40, 60 seconds
+                            const delayTime = Math.min(60000, 5000 * Math.pow(2, attempts - 1));
+                            
+                            console.log(chalk.blue(`🔄 Reconnecting ${phoneNumber} in ${delayTime/1000} seconds (attempt ${attempts}/${this.maxReconnectionAttempts})...`));
+                            
+                            setTimeout(async () => {
+                                try {
+                                    if (this.connections.has(phoneNumber)) {
+                                        console.log(chalk.yellow(`⚠️ ${phoneNumber} already reconnecting, skipping...`));
+                                        return;
+                                    }
+                                    
+                                    console.log(chalk.blue(`🔄 Attempting reconnection for ${phoneNumber}...`));
+                                    await this.createConnection(phoneNumber, telegramChatId);
+                                } catch (error) {
+                                    console.error(chalk.red(`❌ Reconnection failed for ${phoneNumber}:`, error));
+                                }
+                            }, delayTime);
+                        } else {
+                            console.log(chalk.red(`❌ Max reconnection attempts (${this.maxReconnectionAttempts}) reached for ${phoneNumber}`));
+                            this.reconnectionAttempts.delete(phoneNumber);
+                            
+                            // Notify user via Telegram
+                            try {
+                                await bot.sendMessage(telegramChatId, `
+╔═══════════════════╗
+║  ❌ MAX RECONNECTS   ║
+╚═══════════════════╝
+
+📱 *Number:* \`${phoneNumber}\`
+⚠️ *Status:* Failed to reconnect after ${this.maxReconnectionAttempts} attempts
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Please use /pair again to reconnect*
+                                `, { parse_mode: 'Markdown' });
+                            } catch (telegramError) {
+                                console.error(chalk.red('❌ Could not send Telegram notification:', telegramError));
+                            }
+                        }
+                    } else {
+                        // User logged out, clean up session
+                        console.log(chalk.yellow(`⚠️ User logged out: ${phoneNumber}`));
+                        this.reconnectionAttempts.delete(phoneNumber);
+                        await this.disconnect(phoneNumber);
                     }
+                } else if (qr) {
+                    console.log(chalk.blue(`📱 QR Code generated for ${phoneNumber}`));
                 }
             });
 
             conn.ev.on('creds.update', saveCreds);
-            
+
+            // Handle connection errors
+            conn.ev.on('connection.error', (error) => {
+                console.error(chalk.red(`❌ Connection error for ${phoneNumber}:`, error));
+            });
+
             // Store connection
             this.connections.set(phoneNumber, { conn, telegramChatId, phoneNumber });
             this.activeConnections.set(phoneNumber, conn);
-            
+
+            console.log(chalk.green(`✅ Connection created for ${phoneNumber}`));
             return conn;
-            
+
         } catch (error) {
             console.error(chalk.red(`❌ Error creating connection for ${phoneNumber}:`, error));
+            
+            // Clean up on error
+            this.connections.delete(phoneNumber);
+            this.activeConnections.delete(phoneNumber);
+            
             throw error;
         }
     }
@@ -353,7 +422,7 @@ class WhatsAppBotManager {
         try {
             // Wait for connection to stabilize
             await delay(5000);
-            
+
             // Check if connection is ready
             if (!conn.user || !conn.user.id) {
                 console.log(chalk.yellow(`⚠️ Connection not ready for ${phoneNumber}, retrying...`));
@@ -363,7 +432,7 @@ class WhatsAppBotManager {
                     return;
                 }
             }
-            
+
             // Platform detection
             const detectPlatform = () => {
                 if (process.env.DYNO) return "☁️ Heroku";
@@ -485,7 +554,7 @@ class WhatsAppBotManager {
                     ]
                 }
             };
-            
+
             bot.sendMessage(telegramChatId, successMessage, opts);
             console.log(chalk.green(`✅ Telegram notification sent for ${phoneNumber}`));
 
@@ -498,22 +567,26 @@ class WhatsAppBotManager {
     async requestPairingCode(phoneNumber, telegramChatId) {
         try {
             console.log(chalk.blue(`🔄 Creating connection for ${phoneNumber}...`));
-            const conn = await this.createConnection(phoneNumber, telegramChatId);
             
+            // Reset reconnection attempts for this number
+            this.reconnectionAttempts.delete(phoneNumber);
+            
+            const conn = await this.createConnection(phoneNumber, telegramChatId);
+
             setTimeout(async () => {
                 try {
                     console.log(chalk.blue(`🔑 Requesting pairing code for ${phoneNumber}...`));
                     let code = await conn.requestPairingCode(phoneNumber);
                     code = code?.match(/.{1,4}/g)?.join("-") || code;
-                    
+
                     pairingCodes.set(code, { 
                         phoneNumber, 
                         telegramChatId,
                         requestedAt: new Date().toISOString() 
                     });
-                    
+
                     console.log(chalk.green(`✅ Pairing code generated for ${phoneNumber}: ${code}`));
-                    
+
                     const pairingMessage = `
 ╔═══════════════════╗
 ║   🔐 PAIRING CODE   ║
@@ -531,7 +604,7 @@ class WhatsAppBotManager {
 4. Enter code above
 ━━━━━━━━━━━━━━━━━━━
 `;
-                    
+
                     bot.sendMessage(telegramChatId, pairingMessage, {
                         parse_mode: 'Markdown',
                         reply_markup: {
@@ -542,13 +615,13 @@ class WhatsAppBotManager {
                             ]
                         }
                     });
-                    
+
                 } catch (error) {
                     console.error(chalk.red(`❌ Error getting pairing code:`, error));
                     bot.sendMessage(telegramChatId, '❌ Failed to generate pairing code. Please try again.');
                 }
             }, 3000);
-            
+
         } catch (error) {
             console.error(chalk.red(`❌ Error in pairing process:`, error));
             bot.sendMessage(telegramChatId, `❌ Error: ${error.message}`);
@@ -556,22 +629,56 @@ class WhatsAppBotManager {
     }
 
     // Disconnect WhatsApp
-    disconnect(phoneNumber) {
+    async disconnect(phoneNumber) {
         const connection = this.connections.get(phoneNumber);
+        
         if (connection) {
             try {
-                if (connection.conn.logout) connection.conn.logout();
-                if (connection.conn.ws) connection.conn.ws.close();
+                // Remove from reconnection attempts
+                this.reconnectionAttempts.delete(phoneNumber);
+                
+                // Remove from connection maps
                 this.connections.delete(phoneNumber);
                 this.activeConnections.delete(phoneNumber);
-                
+
+                if (connection.conn) {
+                    try {
+                        // Try to logout gracefully
+                        if (connection.conn.logout && typeof connection.conn.logout === 'function') {
+                            await connection.conn.logout().catch(() => {});
+                        }
+                        
+                        // Close WebSocket if it exists
+                        if (connection.conn.ws && connection.conn.ws.readyState !== 3) { // 3 = CLOSED
+                            connection.conn.ws.close();
+                        }
+                    } catch (logoutError) {
+                        console.log(chalk.yellow(`⚠️ Could not logout gracefully for ${phoneNumber}: ${logoutError.message}`));
+                    }
+                }
+
                 // Remove session files
                 const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
                 if (fs.existsSync(sessionPath)) {
-                    fs.rmSync(sessionPath, { recursive: true, force: true });
-                    console.log(chalk.green(`🗑️ Session files deleted for ${phoneNumber}`));
+                    try {
+                        fs.rmSync(sessionPath, { recursive: true, force: true });
+                        console.log(chalk.green(`🗑️ Session files deleted for ${phoneNumber}`));
+                    } catch (deleteError) {
+                        console.error(chalk.red(`❌ Error deleting session files for ${phoneNumber}:`, deleteError));
+                    }
                 }
-                
+
+                // Update connected users
+                const telegramChatId = connection.telegramChatId;
+                if (connectedUsers[telegramChatId]) {
+                    connectedUsers[telegramChatId] = connectedUsers[telegramChatId].filter(u => u.phoneNumber !== phoneNumber);
+                    if (connectedUsers[telegramChatId].length === 0) {
+                        delete connectedUsers[telegramChatId];
+                    }
+                    saveConnectedUsers();
+                }
+
+                console.log(chalk.green(`✅ Disconnected ${phoneNumber} successfully`));
                 return true;
             } catch (error) {
                 console.error(chalk.red(`❌ Error disconnecting ${phoneNumber}:`, error));
@@ -583,6 +690,10 @@ class WhatsAppBotManager {
 
     getAllConnections() {
         return Array.from(this.connections.values());
+    }
+    
+    getConnection(phoneNumber) {
+        return this.connections.get(phoneNumber);
     }
 }
 
@@ -810,7 +921,7 @@ ${!membership.isGroupMember ? '💬 Group: @Davexgroupchart' : '✅ Group: Joine
                 return;
             }
         }
-        
+
         // Session exists but not connected to this user
         bot.sendMessage(chatId, `
 ╔═══════════════════╗
@@ -886,17 +997,9 @@ bot.onText(/\/delpair (.+)/, async (msg, match) => {
         return;
     }
 
-    const success = whatsappManager.disconnect(phoneNumber);
+    const success = await whatsappManager.disconnect(phoneNumber);
 
     if (success) {
-        if (connectedUsers[chatId]) {
-            connectedUsers[chatId] = connectedUsers[chatId].filter(u => u.phoneNumber !== phoneNumber);
-            if (connectedUsers[chatId].length === 0) {
-                delete connectedUsers[chatId];
-            }
-            saveConnectedUsers();
-        }
-
         bot.sendMessage(chatId, `
 ╔═══════════════════╗
 ║  ✅ DISCONNECTED   ║
@@ -1147,7 +1250,7 @@ bot.on('callback_query', async (query) => {
 ━━━━━━━━━━━━━━━━━━━
 💡 Select an option below:
 `;
-            
+
             const opts = {
                 message_id: messageId,
                 chat_id: chatId,
@@ -1162,7 +1265,7 @@ bot.on('callback_query', async (query) => {
                     ]
                 }
             };
-            
+
             bot.editMessageText(menuText, opts);
 
         } else if (data === 'pair_info') {
@@ -1186,7 +1289,7 @@ bot.on('callback_query', async (query) => {
 
 ━━━━━━━━━━━━━━━━━━━
 `;
-            
+
             bot.editMessageText(pairText, {
                 message_id: messageId,
                 chat_id: chatId,
@@ -1274,17 +1377,9 @@ bot.on('callback_query', async (query) => {
 
         } else if (data.startsWith('disconnect_')) {
             const phoneNumber = data.replace('disconnect_', '');
-            const success = whatsappManager.disconnect(phoneNumber);
+            const success = await whatsappManager.disconnect(phoneNumber);
 
             if (success) {
-                if (connectedUsers[chatId]) {
-                    connectedUsers[chatId] = connectedUsers[chatId].filter(u => u.phoneNumber !== phoneNumber);
-                    if (connectedUsers[chatId].length === 0) {
-                        delete connectedUsers[chatId];
-                    }
-                    saveConnectedUsers();
-                }
-
                 bot.editMessageText(
                     `
 ╔═══════════════════╗
@@ -1309,6 +1404,11 @@ bot.on('callback_query', async (query) => {
                         }
                     }
                 );
+            } else {
+                bot.answerCallbackQuery(query.id, {
+                    text: "❌ Failed to disconnect. Session may not exist.",
+                    show_alert: true
+                });
             }
 
         } else if (data === 'verify_membership') {
@@ -1329,6 +1429,11 @@ bot.on('callback_query', async (query) => {
                         }
                     }
                 );
+            } else {
+                bot.answerCallbackQuery(query.id, {
+                    text: "❌ Please join both channel and group first!",
+                    show_alert: true
+                });
             }
 
         } else if (data.startsWith('copy_')) {
@@ -1349,7 +1454,7 @@ bot.on('callback_query', async (query) => {
                 }
             );
 
-            whatsappManager.disconnect(phoneNumber);
+            await whatsappManager.disconnect(phoneNumber);
 
             setTimeout(async () => {
                 try {
@@ -1429,12 +1534,12 @@ async function loadExistingSessions() {
             if (session.startsWith('session_')) {
                 const phoneNumber = session.replace('session_', '');
                 console.log(chalk.blue(`🔄 Found existing session: ${phoneNumber}`));
-                
+
                 for (const [telegramId, connections] of Object.entries(connectedUsers)) {
                     const existing = connections.find(c => c.phoneNumber === phoneNumber);
                     if (existing) {
                         console.log(chalk.yellow(`⚠️ Session ${phoneNumber} found for user ${telegramId}, reconnecting...`));
-                        
+
                         try {
                             await whatsappManager.createConnection(phoneNumber, telegramId);
                             console.log(chalk.green(`✅ Reconnected session: ${phoneNumber}`));
@@ -1450,6 +1555,17 @@ async function loadExistingSessions() {
         console.error(chalk.red('❌ Error loading existing sessions:', error));
     }
 }
+
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+    console.error(chalk.red.bold('❌ Uncaught Exception:'), error);
+    console.log(chalk.yellow('⚠️ Bot will continue running...'));
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error(chalk.red.bold('❌ Unhandled Rejection at:'), promise, 'reason:', reason);
+    console.log(chalk.yellow('⚠️ Bot will continue running...'));
+});
 
 // Start the system
 console.log(chalk.green.bold(`
