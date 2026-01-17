@@ -1,4 +1,3 @@
-// ================ COMPLETE TELEGRAM PAIRING SYSTEM WITH ALL FEATURES ================
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const NodeCache = require('node-cache');
@@ -656,7 +655,7 @@ bot.onText(/\/start/, (msg) => {
 🏓 /ping - Check bot speed
 
 ━━━━━━━━━━━━━━━━━━━
-💡 Developed by @courtney254
+💡 Developed by @Digladoo
 `;
     
     bot.sendPhoto(chatId, 'https://files.catbox.moe/pzf1km.jpg', {
@@ -668,8 +667,8 @@ bot.onText(/\/start/, (msg) => {
                 [{ text: "📋 My Connections", callback_data: "list_my_connections" }],
                 [{ text: "ℹ️ Bot Info", callback_data: "bot_info" }],
                 [
-                    { text: "💬 Group", url: "https://t.me/Techworld401" },
-                    { text: "📢 Channel", url: "https://t.me/sensation254" }
+                    { text: "💬 Group", url: "https://t.me/Davexgroupchart" },
+                    { text: "📢 Channel", url: "https://t.me/DavexTech" }
                 ]
             ]
         }
@@ -878,8 +877,8 @@ bot.onText(/\/botinfo/, (msg) => {
         reply_markup: {
             inline_keyboard: [
                 [
-                    { text: "💬 Support", url: "https://t.me/Techworld401" },
-                    { text: "📢 Updates", url: "https://t.me/sensation254" }
+                    { text: "💬 Support", url: "https://t.me/Davexgroupchart" },
+                    { text: "📢 Updates", url: "https://t.me/DavexTech" }
                 ]
             ]
         }
