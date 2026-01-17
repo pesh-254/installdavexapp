@@ -712,9 +712,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
             /*━━━━━━━━━━━━━━━━━━━━*/
             // Prefix case 
             /*━━━━━━━━━━━━━━━━━━━━*/
-            case 'setprefix':
-                await handleSetPrefixCommand(sock, chatId, senderId, message, userMessage, prefix);
-                break;
+         //   case 'setprefix':
+            //    await handleSetPrefixCommand(sock, chatId, senderId, message, userMessage, prefix);
+             //   break;
 
             // Set owner  
             case 'setowner':
