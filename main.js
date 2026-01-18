@@ -69,7 +69,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const { jidDecode } = require('@whiskeysockets/baileys');
 const { isSudo } = require('./lib/index');
 const isAdmin = require('./lib/isAdmin');
-const { Antilink } = require('./lib/antilink');
+const { handleLinkDetection } = require('./commands/antilink'); // CHANGED: Removed Antilink, added handleLinkDetection
 const { tictactoeCommand, handleTicTacToeMove } = require('./commands/tictactoe');
 
 // Message handler utility
@@ -120,8 +120,7 @@ const {
 } = require('./commands/groupmanage');
 
 const { 
- handleAntilinkCommand, 
- handleLinkDetection 
+ handleAntilinkCommand
 } = require('./commands/antilink');
 
 const { 
@@ -315,7 +314,7 @@ const { chaneljidCommand } = require('./commands/chanel');
 const { connectFourCommand, handleConnectFourMove } = require('./commands/connect4');
 
 /*━━━━━━━━━━━━━━━━━━━━*/
-// -----New Command imports-----
+// -----NEW Command imports-----
 /*━━━━━━━━━━━━━━━━━━━━*/
 const {
     setbotconfigCommand,
@@ -339,7 +338,7 @@ const {
 const {
     antidemoteCommand,
     handleAntidemote
-} = require('./commands/antidemote');
+} = require('./commands/antidemote'); // CHANGED: Added antidemote handlers
 
 const {
     antibugCommand,
@@ -475,7 +474,7 @@ async function handleMessages(sock, messageUpdate, printLog) {
         function createFakeContact(message) {
             const participantId = message?.key?.participant?.split('@')[0] || 
                                  message?.key?.remoteJid?.split('@')[0] || '0';
-            
+
             return {
                 key: {
                     participants: "0@s.whatsapp.net",
@@ -573,7 +572,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
         // Check for bad words FIRST, before ANY other processing
         if (isGroup && userMessage) {
             await handleBadwordDetection(sock, chatId, message, userMessage, senderId);
-            await Antilink(message, sock);
+            
+            // CHANGED: Replaced Antilink() with handleLinkDetection()
+            await handleLinkDetection(sock, chatId, message, userMessage, senderId);
 
             // Handle various detections
             await handleBugDetection(sock, chatId, message, senderId);
@@ -610,11 +611,11 @@ async function handleMessages(sock, messageUpdate, printLog) {
         // Check which is enabled for this chat type
         const typingEnabledForChat = await isAutotypingEnabled(isGroup);
         const recordingEnabledForChat = await isAutorecordingEnabled(isGroup);
-        
+
         if (typingEnabledForChat) {
             await handleAutotypingForMessage(sock, chatId, userMessage, isGroup);
         }
-        
+
         if (recordingEnabledForChat) {
             await handleAutorecordingForMessage(sock, chatId, isGroup);
         }
@@ -712,9 +713,9 @@ async function handleMessages(sock, messageUpdate, printLog) {
             /*━━━━━━━━━━━━━━━━━━━━*/
             // Prefix case 
             /*━━━━━━━━━━━━━━━━━━━━*/
-         //   case 'setprefix':
-            //    await handleSetPrefixCommand(sock, chatId, senderId, message, userMessage, prefix);
-             //   break;
+            case 'setprefix':
+                await handleSetPrefixCommand(sock, chatId, senderId, message, userMessage, prefix);
+                break;
 
             // Set owner  
             case 'setowner':
@@ -926,15 +927,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await anticallCommand(sock, chatId, message, fullArgs);
                 break;
 
-           // case 'pmblocker':
-               // if (!message.key.fromMe && !senderIsSudo) {
-              //      await sock.sendMessage(chatId, { text: 'Only owner or sudo can use pmblocker.' }, { quoted: message });
-                  //  commandExecuted = true;
-                  //  break;
-                //}
-              //  await pmblockerCommand(sock, chatId, message, fullArgs);
-              //  commandExecuted = true;
-              //  break;
+            case 'pmblocker':
+                if (!message.key.fromMe && !senderIsSudo) {
+                    await sock.sendMessage(chatId, { text: 'Only owner or sudo can use pmblocker.' }, { quoted: message });
+                    commandExecuted = true;
+                    break;
+                }
+                await pmblockerCommand(sock, chatId, message, fullArgs);
+                commandExecuted = true;
+                break;
 
             case 'owner':
                 await ownerCommand(sock, chatId);
@@ -1700,8 +1701,6 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await groupJidCommand(sock, chatId, message);
                 break;
 
-            case 'autotype':
-            case 'typing':
             case 'autotyping':
                 await autotypingCommand(sock, chatId, message);
                 commandExecuted = true;
@@ -1835,17 +1834,15 @@ async function handleMessages(sock, messageUpdate, printLog) {
                 await piesAlias(sock, chatId, message, 'hijab');
                 commandExecuted = true;
                 break;
-            //case 'update':
-           // case 'start':
-            //case 'restart':
-              //  {
-                  //  const zipArg = args[0] && args[0].startsWith('http') ? args[0] : '';
-                //    await updateCommand(sock, chatId, message, senderIsSudo, zipArg);
-              //  }
-               // commandExecuted = true;
-               // break;
-
-
+            case 'update':
+            case 'start':
+            case 'restart':
+                {
+                    const zipArg = args[0] && args[0].startsWith('http') ? args[0] : '';
+                    await updateCommand(sock, chatId, message, senderIsSudo, zipArg);
+                }
+                commandExecuted = true;
+                break;
             case 'removebg':
             case 'rmbg':
             case 'nobg':
@@ -2016,22 +2013,22 @@ async function handleGroupParticipantUpdate(sock, update) {
             await handleAntipromote(sock, id, participants, author);
         }
 
-        // Handle antidemote feature
+        // Handle antidemote feature - ADDED THIS SECTION
         if (action === 'demote') {
-            await handleAntidemote(sock, id, participants, author);
+            // First handle antidemote protection
+            const antidemoteResult = await handleAntidemote(sock, id, participants, author);
+            
+            // Only proceed with normal demotion event if antidemote didn't block it
+            if (!antidemoteResult && isPublic) {
+                await handleDemotionEvent(sock, id, participants, author);
+            }
+            return;
         }
 
         // Handle promotion events
         if (action === 'promote') {
             if (!isPublic) return;
             await handlePromotionEvent(sock, id, participants, author);
-            return;
-        }
-
-        // Handle demotion events
-        if (action === 'demote') {
-            if (!isPublic) return;
-            await handleDemotionEvent(sock, id, participants, author);
             return;
         }
 
