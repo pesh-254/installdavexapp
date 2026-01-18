@@ -1,9 +1,29 @@
 {
   "users": ["0@s.whatsapp.net"],
   "groups": ["0@g.us"],
-  "antilink": {},
+  "antilink": {
+    "1234567890@g.us": {
+      "enabled": true,
+      "action": "delete"
+    }
+  },
+  "antitag": {},
+  "antigroupmention": {},
+  "antidemote": {},
+  "antisticker": {},
+  "antiimage": {},
+  "antiaudio": {},
+  "antidocument": {},
+  "antifiles": {},
+  "antipromote": {},
+  "antivideo": {},
+  "antibug": {},
   "antibadword": {},
-  "warnings": {},
+  "warnings": {
+    "1234567890@g.us": {
+      "1234567890@s.whatsapp.net": 2
+    }
+  },
   "sudo": [],
   "welcome": {},
   "goodbye": {},
