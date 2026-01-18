@@ -234,7 +234,9 @@ class WhatsAppBotManager {
                 markOnlineOnConnect: true,
                 generateHighQualityLinkPreview: true,
                 msgRetryCounterCache,
-                defaultQueryTimeoutMs: undefined,
+                defaultQueryTimeoutMs: 60000,
+                connectTimeoutMs: 60000,
+                keepAliveIntervalMs: 30000,
             });
 
             // Bind store if available
