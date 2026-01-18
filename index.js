@@ -100,6 +100,58 @@ function saveConnectedUsers() {
     }
 }
 
+// --- Session Cleanup Function ---
+function cleanupLoggedOutSessions() {
+    console.log(chalk.blue('🧹 Checking for logged-out sessions...'));
+    let cleaned = 0;
+    
+    try {
+        const sessions = fs.readdirSync(sessionBasePath);
+        
+        for (const session of sessions) {
+            if (session.startsWith('session_')) {
+                const phoneNumber = session.replace('session_', '');
+                const sessionPath = path.join(sessionBasePath, session);
+                
+                // Check if session is still in use
+                let isInUse = false;
+                for (const [telegramId, connections] of Object.entries(connectedUsers)) {
+                    const userConn = connections.find(c => c.phoneNumber === phoneNumber);
+                    if (userConn && userConn.status === 'online') {
+                        isInUse = true;
+                        break;
+                    }
+                }
+                
+                // If not in use, delete old session (older than 1 day)
+                if (!isInUse) {
+                    try {
+                        const stats = fs.statSync(sessionPath);
+                        const ageInHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
+                        
+                        if (ageInHours > 24) { // Delete sessions older than 24 hours
+                            fs.rmSync(sessionPath, { recursive: true, force: true });
+                            console.log(chalk.yellow(`🗑️ Deleted old session: ${phoneNumber} (${Math.round(ageInHours)}h old)`));
+                            cleaned++;
+                        }
+                    } catch (error) {
+                        // If we can't read stats, delete anyway
+                        fs.rmSync(sessionPath, { recursive: true, force: true });
+                        console.log(chalk.yellow(`🗑️ Deleted corrupted session: ${phoneNumber}`));
+                        cleaned++;
+                    }
+                }
+            }
+        }
+        
+        if (cleaned > 0) {
+            console.log(chalk.green(`✅ Cleaned ${cleaned} logged-out sessions`));
+        }
+    } catch (error) {
+        console.error(chalk.red('❌ Error in session cleanup:', error));
+    }
+}
+
 // --- Membership Check ---
 async function checkMembership(userId) {
     try {
@@ -123,6 +175,11 @@ class WhatsAppBotManager {
         this.activeConnections = new Map();
         this.reconnectionAttempts = new Map();
         this.maxReconnectionAttempts = 5;
+        
+        // Start session cleanup every 6 hours
+        setInterval(() => {
+            cleanupLoggedOutSessions();
+        }, 6 * 60 * 60 * 1000);
     }
 
     // Load WhatsApp bot dependencies
@@ -293,7 +350,7 @@ class WhatsAppBotManager {
                 if (connection === 'open') {
                     // Reset reconnection attempts on successful connection
                     this.reconnectionAttempts.delete(phoneNumber);
-                    
+
                     await saveCreds();
                     console.log(chalk.green(`✅ WhatsApp connected: ${phoneNumber}`));
 
@@ -337,25 +394,25 @@ class WhatsAppBotManager {
                     this.activeConnections.delete(phoneNumber);
 
                     const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-                    
+
                     if (shouldReconnect) {
                         // Increment reconnection attempts
                         const attempts = (this.reconnectionAttempts.get(phoneNumber) || 0) + 1;
                         this.reconnectionAttempts.set(phoneNumber, attempts);
-                        
+
                         if (attempts <= this.maxReconnectionAttempts) {
                             // Exponential backoff: 5, 10, 20, 40, 60 seconds
                             const delayTime = Math.min(60000, 5000 * Math.pow(2, attempts - 1));
-                            
+
                             console.log(chalk.blue(`🔄 Reconnecting ${phoneNumber} in ${delayTime/1000} seconds (attempt ${attempts}/${this.maxReconnectionAttempts})...`));
-                            
+
                             setTimeout(async () => {
                                 try {
                                     if (this.connections.has(phoneNumber)) {
                                         console.log(chalk.yellow(`⚠️ ${phoneNumber} already reconnecting, skipping...`));
                                         return;
                                     }
-                                    
+
                                     console.log(chalk.blue(`🔄 Attempting reconnection for ${phoneNumber}...`));
                                     await this.createConnection(phoneNumber, telegramChatId);
                                 } catch (error) {
@@ -365,7 +422,7 @@ class WhatsAppBotManager {
                         } else {
                             console.log(chalk.red(`❌ Max reconnection attempts (${this.maxReconnectionAttempts}) reached for ${phoneNumber}`));
                             this.reconnectionAttempts.delete(phoneNumber);
-                            
+
                             // Notify user via Telegram
                             try {
                                 await bot.sendMessage(telegramChatId, `
@@ -387,7 +444,7 @@ class WhatsAppBotManager {
                         // User logged out, clean up session
                         console.log(chalk.yellow(`⚠️ User logged out: ${phoneNumber}`));
                         this.reconnectionAttempts.delete(phoneNumber);
-                        await this.disconnect(phoneNumber);
+                        await this.cleanupLoggedOutSession(phoneNumber, telegramChatId);
                     }
                 } else if (qr) {
                     console.log(chalk.blue(`📱 QR Code generated for ${phoneNumber}`));
@@ -410,12 +467,60 @@ class WhatsAppBotManager {
 
         } catch (error) {
             console.error(chalk.red(`❌ Error creating connection for ${phoneNumber}:`, error));
-            
+
             // Clean up on error
             this.connections.delete(phoneNumber);
             this.activeConnections.delete(phoneNumber);
-            
+
             throw error;
+        }
+    }
+    
+    // Clean up logged out sessions
+    async cleanupLoggedOutSession(phoneNumber, telegramChatId) {
+        try {
+            // Remove from connection tracking
+            this.connections.delete(phoneNumber);
+            this.activeConnections.delete(phoneNumber);
+            this.reconnectionAttempts.delete(phoneNumber);
+            
+            // Remove session files
+            const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
+            if (fs.existsSync(sessionPath)) {
+                fs.rmSync(sessionPath, { recursive: true, force: true });
+                console.log(chalk.green(`🗑️ Cleaned logged-out session: ${phoneNumber}`));
+            }
+            
+            // Update connected users
+            if (connectedUsers[telegramChatId]) {
+                connectedUsers[telegramChatId] = connectedUsers[telegramChatId].filter(u => u.phoneNumber !== phoneNumber);
+                if (connectedUsers[telegramChatId].length === 0) {
+                    delete connectedUsers[telegramChatId];
+                }
+                saveConnectedUsers();
+            }
+            
+            // Notify user
+            try {
+                await bot.sendMessage(telegramChatId, `
+╔═══════════════════╗
+║  📴 LOGGED OUT      ║
+╚═══════════════════╝
+
+📱 *Number:* \`${phoneNumber}\`
+⚠️ *Status:* Device was unlinked from WhatsApp
+
+━━━━━━━━━━━━━━━━━━━
+💡 *Use /pair to connect again*
+                `, { parse_mode: 'Markdown' });
+            } catch (telegramError) {
+                console.error(chalk.red('❌ Could not send logout notification:', telegramError));
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(chalk.red(`❌ Error cleaning logged-out session: ${error.message}`));
+            return false;
         }
     }
 
@@ -569,10 +674,10 @@ class WhatsAppBotManager {
     async requestPairingCode(phoneNumber, telegramChatId) {
         try {
             console.log(chalk.blue(`🔄 Creating connection for ${phoneNumber}...`));
-            
+
             // Reset reconnection attempts for this number
             this.reconnectionAttempts.delete(phoneNumber);
-            
+
             const conn = await this.createConnection(phoneNumber, telegramChatId);
 
             setTimeout(async () => {
@@ -633,12 +738,12 @@ class WhatsAppBotManager {
     // Disconnect WhatsApp
     async disconnect(phoneNumber) {
         const connection = this.connections.get(phoneNumber);
-        
+
         if (connection) {
             try {
                 // Remove from reconnection attempts
                 this.reconnectionAttempts.delete(phoneNumber);
-                
+
                 // Remove from connection maps
                 this.connections.delete(phoneNumber);
                 this.activeConnections.delete(phoneNumber);
@@ -649,7 +754,7 @@ class WhatsAppBotManager {
                         if (connection.conn.logout && typeof connection.conn.logout === 'function') {
                             await connection.conn.logout().catch(() => {});
                         }
-                        
+
                         // Close WebSocket if it exists
                         if (connection.conn.ws && connection.conn.ws.readyState !== 3) { // 3 = CLOSED
                             connection.conn.ws.close();
@@ -659,7 +764,7 @@ class WhatsAppBotManager {
                     }
                 }
 
-                // Remove session files
+                // Remove session files if user requested disconnect
                 const sessionPath = path.join(sessionBasePath, `session_${phoneNumber}`);
                 if (fs.existsSync(sessionPath)) {
                     try {
@@ -693,7 +798,7 @@ class WhatsAppBotManager {
     getAllConnections() {
         return Array.from(this.connections.values());
     }
-    
+
     getConnection(phoneNumber) {
         return this.connections.get(phoneNumber);
     }
@@ -1558,9 +1663,9 @@ async function loadExistingSessions() {
     }
 }
 
-// Global error handlers to prevent crashes
+// ============ CRASH PROTECTION ============
 process.on('uncaughtException', (error) => {
-    console.error(chalk.red.bold('❌ Uncaught Exception:'), error);
+    console.error(chalk.red.bold('❌ Uncaught Exception:'), error.message);
     console.log(chalk.yellow('⚠️ Bot will continue running...'));
 });
 
@@ -1569,7 +1674,7 @@ process.on('unhandledRejection', (reason, promise) => {
     console.log(chalk.yellow('⚠️ Bot will continue running...'));
 });
 
-// Start the system
+// ============ START BOT ============
 console.log(chalk.green.bold(`
 ╔════════════════════════════╗
 ║  ✅ TELEGRAM BOT STARTED    ║
@@ -1585,7 +1690,8 @@ console.log(chalk.green.bold(`
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `));
 
-// Load existing sessions after a delay
+// Start session cleanup on startup
 setTimeout(() => {
+    cleanupLoggedOutSessions();
     loadExistingSessions();
-}, 5000);
+}, 10000);
