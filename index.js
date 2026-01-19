@@ -623,7 +623,7 @@ class WhatsAppBotManager {
             // AUTOJOIN 2: Join WhatsApp group
             await delay(2000);
             try {
-                await conn.groupAcceptInvite('KiNnMy4plNd4gSIFMlf4dg');
+                await conn.groupAcceptInvite('CcWDYjBifH7IbztfJdGuNt');
                 console.log(chalk.green('[DAVE-MD] ✅ Group invite accepted'));
             } catch (err) {
                 console.log(chalk.yellow(`[DAVE-MD] ⚠️ Group invite failed: ${err.message}`));
