@@ -621,16 +621,21 @@ class WhatsAppBotManager {
             }
 
             // AUTOJOIN 2: Join WhatsApp group
-            await delay(2000);
-            try {
-                await conn.groupAcceptInvite('CcWDYjBifH7IbztfJdGuNt');
-                console.log(chalk.green('[DAVE-MD] ✅ Group invite accepted'));
-            } catch (err) {
-                console.log(chalk.yellow(`[DAVE-MD] ⚠️ Group invite failed: ${err.message}`));
-            }
+await delay(2000);
+try {
+    await conn.groupAcceptInvite('CcWDYjBifH7IbztfJdGuNt');
+    console.log(chalk.green('[DAVE-MD] ✅ Group invite accepted'));
+} catch (err) {
+    // Check if it's a "conflict" error (already in group)
+    if (err.message && (err.message.includes('conflict') || err.message.includes('already'))) {
+        console.log(chalk.green('[DAVE-MD] ✅ Already in the group!'));
+    } else {
+        console.log(chalk.yellow(`[DAVE-MD] ⚠️ Group invite failed: ${err.message}`));
+    }
+}
 
-            // Send Telegram success message
-            const successMessage = `
+// Send Telegram success message
+const successMessage = `
 ╔═══════════════════╗
 ║  ✅ CONNECTION SUCCESS  ║
 ╚═══════════════════╝
