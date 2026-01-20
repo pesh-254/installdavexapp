@@ -45,7 +45,7 @@
     "human-readable": "^0.2.1",
     "jsdom": "^22.1.0",
     "node-telegram-bot-api": "^0.61.0",
-    "jimp": """,  
+    "jimp": "*",  
     "javascript-obfuscator": "^4.1.0",
     "libphonenumber-js": "^1.11.18",
     "libsignal": "^2.0.1",
