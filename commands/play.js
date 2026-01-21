@@ -1,5 +1,8 @@
-const yts = require('yt-search');
+const fs = require("fs");
 const axios = require('axios');
+const yts = require('yt-search');
+const path = require('path');
+const fetch = require('node-fetch');
 
 // Added fakeContact function
 function createFakeContact(message) {
@@ -19,63 +22,59 @@ function createFakeContact(message) {
     };
 }
 
-async function playCommand(sock, chatId, message) {
-    // Added this line
-    const fakeContact = createFakeContact(message);
-    
-    try {
+async function songCommand(sock, chatId, message) {
+    try { 
+        await sock.sendMessage(chatId, {
+            react: { text: '🎼', key: message.key }
+        });         
+
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
-        const searchQuery = text.split(' ').slice(1).join(' ').trim();
-        
-        if (!searchQuery) {
+        const parts = text.split(' ');
+        const query = parts.slice(1).join(' ').trim();
+
+        if (!query) {
             return await sock.sendMessage(chatId, { 
-                text: "What song do you want to download?"
-            }, { quoted: fakeContact });
+                text: '🎵 Provide a song name!\nExample:.song Not Like Us' 
+            }, { quoted: message });
         }
 
-        // Search for the song
-        const { videos } = await yts(searchQuery);
-        if (!videos || videos.length === 0) {
+        if (query.length > 100) {
             return await sock.sendMessage(chatId, { 
-                text: "No songs found!"
-            }, { quoted: fakeContact });
+                text: `📝 Song name too long! Max 100 chars.` 
+            }, { quoted: message });
         }
 
-        // Send loading message
+        const searchResult = await (await yts(`${query} official`)).videos[0];
+        if (!searchResult) {
+            return sock.sendMessage(chatId, { 
+                text: "😕 Couldn't find that song. Try another one!" 
+            }, { quoted: message });
+        }
+
+        const video = searchResult;
+        const apiUrl = `https://apiskeith.vercel.app/download/audio?url=${encodeURIComponent(video.url)}`;
+        const response = await axios.get(apiUrl);
+        const apiData = response.data;
+
+        if (!apiData.status || !apiData.result) throw new Error("API failed to fetch track!");
+
+        // Create fake contact for quoting
+        const fakeContact = createFakeContact(message);
+
+        // Send the audio directly with title as caption
         await sock.sendMessage(chatId, {
-            text: "_Please wait your download is in progress_"
-        }, { quoted: fakeContact });
-
-        // Get the first video result
-        const video = videos[0];
-        const urlYt = video.url;
-
-        // Fetch audio data from API
-        const response = await axios.get(`https://apis-keith.vercel.app/download/dlmp3?url=${urlYt}`);
-        const data = response.data;
-
-        if (!data || !data.status || !data.result || !data.result.downloadUrl) {
-            return await sock.sendMessage(chatId, { 
-                text: "Failed to fetch audio from the API. Please try again later."
-            }, { quoted: fakeContact });
-        }
-
-        const audioUrl = data.result.downloadUrl;
-        const title = data.result.title;
-
-        // Send the audio
-        await sock.sendMessage(chatId, {
-            audio: { url: audioUrl },
+            audio: { url: apiData.result },
             mimetype: "audio/mpeg",
-            fileName: `${title}.mp3`
+            fileName: `${video.title}.mp3`,
+            caption: `🎶 *${apiData.title || video.title}*`
         }, { quoted: fakeContact });
 
     } catch (error) {
-        console.error('Error in song2 command:', error);
-        await sock.sendMessage(chatId, { 
-            text: "Download failed. Please try again later."
-        }, { quoted: fakeContact });
+        console.error("Song command error:", error);
+        return await sock.sendMessage(chatId, { 
+            text: `🚫 Error: ${error.message}` 
+        }, { quoted: message });
     }
 }
 
-module.exports = playCommand;
+module.exports = songCommand;
