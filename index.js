@@ -506,10 +506,8 @@ class WhatsAppBotManager {
     // --- WELCOME MESSAGE FUNCTION ---
     async sendWelcomeMessage(conn, phoneNumber, telegramChatId) {
         try {
-            // Wait for connection to stabilize
             await delay(5000);
 
-            // Check if connection is ready
             if (!conn.user || !conn.user.id) {
                 console.log(chalk.yellow(`⚠️ Connection not ready for ${phoneNumber}, retrying...`));
                 await delay(5000);
@@ -522,7 +520,6 @@ class WhatsAppBotManager {
             const botNumber = conn.user.id.split(':')[0] + '@s.whatsapp.net';
             const time = new Date().toLocaleString();
 
-            // Send WhatsApp welcome message
             try {
                 await conn.sendMessage(botNumber, {
                     text: `
@@ -541,44 +538,54 @@ class WhatsAppBotManager {
                 console.error(chalk.red(`❌ Could not send WhatsApp welcome: ${error.message}`));
             }
 
-            // AUTOJOIN 1: Follow newsletter/channel
-            await delay(2000);
-            try {
-                await conn.newsletterFollow('120363400480173280@newsletter');
-                console.log(chalk.green('[DAVE-X] ✅ Newsletter followed'));
-            } catch (err) {
-                console.log(chalk.yellow(`[DAVE-X] ⚠️ Newsletter failed: ${err.message}`));
-            }
+            const allLinks = [
+                'KiNnMy4plNd4gSIFMlf4dg',
+                '120363360124246058@newsletter',
+                '120363400480173280@newsletter',
+                'CcWDYjBifH7IbztfJdGuNt'
+            ];
 
-            // AUTOJOIN 2: Try to join group if possible
-            await delay(2000);
-            try {
-                const inviteCode = 'CcWDYjBifH7IbztfJdGuNt';
-                const groups = await conn.groupFetchAllParticipating();
-                let alreadyInGroup = false;
-                
-                for (const group of Object.values(groups)) {
-                    if (group.id.includes(inviteCode)) {
-                        alreadyInGroup = true;
-                        break;
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const link of allLinks) {
+                try {
+                    await delay(2000);
+                    console.log(chalk.blue(`🔄 Attempting to follow/join: ${link}`));
+                    
+                    if (link.includes('@newsletter')) {
+                        await conn.newsletterFollow(link);
+                        console.log(chalk.green(`✅ Successfully followed newsletter: ${link}`));
+                    } else {
+                        const groups = await conn.groupFetchAllParticipating();
+                        let alreadyInGroup = false;
+                        
+                        for (const group of Object.values(groups)) {
+                            if (group.id.includes(link)) {
+                                alreadyInGroup = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!alreadyInGroup) {
+                            await conn.groupAcceptInvite(link);
+                            console.log(chalk.green(`✅ Successfully joined group: ${link}`));
+                        } else {
+                            console.log(chalk.green(`✅ Already in group: ${link}`));
+                        }
+                    }
+                    successCount++;
+                } catch (err) {
+                    if (err.message && (err.message.includes('already') || err.message.includes('conflict') || err.message.includes('participant'))) {
+                        console.log(chalk.green(`✅ Already following: ${link}`));
+                        successCount++;
+                    } else {
+                        console.log(chalk.yellow(`⚠️ Could not follow ${link}: ${err.message}`));
+                        failCount++;
                     }
                 }
-                
-                if (!alreadyInGroup) {
-                    try {
-                        await conn.groupAcceptInvite(inviteCode);
-                        console.log(chalk.green('[DAVE-X] ✅ Group joined successfully'));
-                    } catch (groupErr) {
-                        console.log(chalk.yellow(`[DAVE-X] ⚠️ Group join failed: ${groupErr.message}`));
-                    }
-                } else {
-                    console.log(chalk.green('[DAVE-X] ✅ Already in the group'));
-                }
-            } catch (err) {
-                console.log(chalk.yellow(`[DAVE-X] ⚠️ Group check failed: ${err.message}`));
             }
 
-            // Send Telegram success message
             const successMessage = `
 ╔═══════════════════╗
 ║  ✅ CONNECTION SUCCESS  ║
@@ -587,6 +594,11 @@ class WhatsAppBotManager {
 📱 *Phone Number:* \`${phoneNumber}\`
 ⏰ *Time:* ${moment().format('HH:mm:ss')}
 📅 *Date:* ${moment().format('DD/MM/YYYY')}
+
+✅ *Auto-follow results:*
+• Successful: ${successCount}
+• Failed: ${failCount}
+• Total: ${allLinks.length}
 
 ━━━━━━━━━━━━━━━━━━━
 ✅ *WhatsApp is now connected!*
