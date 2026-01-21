@@ -22,10 +22,10 @@ function createFakeContact(message) {
     };
 }
 
-async function songCommand(sock, chatId, message) {
+async function playCommand(sock, chatId, message) {
     try { 
         await sock.sendMessage(chatId, {
-            react: { text: '🎼', key: message.key }
+            react: { text: '🎵', key: message.key }
         });         
 
         const text = message.message?.conversation || message.message?.extendedTextMessage?.text;
@@ -34,7 +34,7 @@ async function songCommand(sock, chatId, message) {
 
         if (!query) {
             return await sock.sendMessage(chatId, { 
-                text: '🎵 Provide a song name!\nExample:.song Not Like Us' 
+                text: '🎵 Provide a song name!\nExample:.play Not Like Us' 
             }, { quoted: message });
         }
 
@@ -58,23 +58,57 @@ async function songCommand(sock, chatId, message) {
 
         if (!apiData.status || !apiData.result) throw new Error("API failed to fetch track!");
 
+        const tempDir = path.join(__dirname, "temp");
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+        const timestamp = Date.now();
+        const fileName = `audio_${timestamp}.mp3`;
+        const filePath = path.join(tempDir, fileName);
+
+        // Download MP3
+        const audioResponse = await axios({ 
+            method: "get", 
+            url: apiData.result, 
+            responseType: "stream", 
+            timeout: 600000 
+        });
+        const writer = fs.createWriteStream(filePath);
+        audioResponse.data.pipe(writer);
+        await new Promise((resolve, reject) => { 
+            writer.on("finish", resolve); 
+            writer.on("error", reject); 
+        });
+
+        if (!fs.existsSync(filePath) || fs.statSync(filePath).size === 0) {
+            throw new Error("Download failed or empty file!");
+        }
+
         // Create fake contact for quoting
         const fakeContact = createFakeContact(message);
 
-        // Send the audio directly with title as caption
-        await sock.sendMessage(chatId, {
-            audio: { url: apiData.result },
-            mimetype: "audio/mpeg",
-            fileName: `${video.title}.mp3`,
-            caption: `🎶 *${apiData.title || video.title}*`
+        // Read file as buffer
+        const fileBuffer = fs.readFileSync(filePath);
+        const cleanTitle = (apiData.title || video.title).replace(/[^\w\s\-]/gi, '').trim();
+
+        // Send as DOCUMENT using buffer
+        await sock.sendMessage(chatId, { 
+            document: fileBuffer,
+            mimetype: "audio/mpeg", 
+            fileName: `${cleanTitle.substring(0, 100)}.mp3`,
+            caption: `🎵 *${apiData.title || video.title}*`
         }, { quoted: fakeContact });
 
+        // Cleanup immediately
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
     } catch (error) {
-        console.error("Song command error:", error);
+        console.error("Play command error:", error);
         return await sock.sendMessage(chatId, { 
             text: `🚫 Error: ${error.message}` 
         }, { quoted: message });
     }
 }
 
-module.exports = songCommand;
+module.exports = playCommand;
