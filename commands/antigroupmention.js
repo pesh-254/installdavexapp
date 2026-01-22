@@ -4,7 +4,7 @@ const isAdmin = require('../lib/isAdmin');
 function createFakeContact(message) {
     const participantId = message?.key?.participant?.split('@')[0] || 
                           message?.key?.remoteJid?.split('@')[0] || '0';
-    
+
     return {
         key: {
             participants: "0@s.whatsapp.net",
@@ -36,7 +36,7 @@ async function antigroupmentionCommand(sock, chatId, message, senderId) {
         const action = args[0]?.toLowerCase();
 
         if (!action) {
-            const usage = `👥 *ANTIGROUPMENTION SETUP*
+            const usage = `👥 *GROUP STATUS MENTION PROTECTION*
 
 Commands:
 • .antigroupmention on
@@ -47,27 +47,28 @@ Commands:
 • .antigroupmention status
 
 *Actions:*
-• delete - Delete the message
-• kick - Delete message & remove user
-• warn - Delete message & warn user`;
+• delete - Delete the group status mention
+• kick - Delete & remove user who mentioned group status
+• warn - Delete & warn user
 
+*What it blocks:* When users try to mention the group's status message`;
+            
             await sock.sendMessage(chatId, { text: usage }, { quoted: fake });
             return;
         }
 
         switch (action) {
             case 'on':
-                await setAntigroupmention(chatId, 'on', 'delete');
+                await setAntigroupmention(chatId, { enabled: true, action: 'delete' });
                 await sock.sendMessage(chatId, { 
-                    text: '✅ Antigroupmention has been turned ON\n\n🛡️ Action: Delete message\n\nNon-admins cannot use @everyone or @all' 
+                    text: '✅ Group Status Mention Protection has been turned ON\n\n🛡️ Action: Delete message\n\nNon-admins cannot mention group status' 
                 }, { quoted: fake });
                 break;
 
             case 'off':
-                // Fixed: Using correct parameters for removeAntigroupmention
-                await removeAntigroupmention(chatId, 'off');
+                await setAntigroupmention(chatId, { enabled: false, action: 'delete' });
                 await sock.sendMessage(chatId, { 
-                    text: '❌ Antigroupmention has been turned OFF\n\nEveryone can now use group mentions' 
+                    text: '❌ Group Status Mention Protection has been turned OFF\n\nEveryone can now mention group status' 
                 }, { quoted: fake });
                 break;
 
@@ -80,7 +81,7 @@ Commands:
                     return;
                 }
 
-                await setAntigroupmention(chatId, 'on', setAction);
+                await setAntigroupmention(chatId, { enabled: true, action: setAction });
 
                 const actionEmoji = {
                     'delete': '🗑️',
@@ -89,17 +90,17 @@ Commands:
                 };
 
                 await sock.sendMessage(chatId, { 
-                    text: `✅ Antigroupmention action set to: ${actionEmoji[setAction]} *${setAction.toUpperCase()}*\n\nStatus: ON` 
+                    text: `✅ Group Status Mention action set to: ${actionEmoji[setAction]} *${setAction.toUpperCase()}*\n\nStatus: ON` 
                 }, { quoted: fake });
                 break;
 
             case 'status':
             case 'get':
-                const config = await getAntigroupmention(chatId, 'on');
+                const config = await getAntigroupmention(chatId);
 
                 if (!config || !config.enabled) {
                     await sock.sendMessage(chatId, { 
-                        text: '👥 *Antigroupmention Status*\n\n❌ Status: OFF\n\nUse `.antigroupmention on` to enable' 
+                        text: '👥 *Group Status Mention Protection Status*\n\n❌ Status: OFF\n\nUse `.antigroupmention on` to enable' 
                     }, { quoted: fake });
                 } else {
                     const actionEmoji = {
@@ -109,7 +110,7 @@ Commands:
                     };
 
                     await sock.sendMessage(chatId, { 
-                        text: `👥 *Antigroupmention Status*\n\n✅ Status: ON\n${actionEmoji[config.action]} Action: ${config.action.toUpperCase()}\n\n🛡️ Non-admins cannot use @everyone or @all` 
+                        text: `👥 *Group Status Mention Protection Status*\n\n✅ Status: ON\n${actionEmoji[config.action]} Action: ${config.action.toUpperCase()}\n\n🛡️ Non-admins cannot mention group status` 
                     }, { quoted: fake });
                 }
                 break;
@@ -128,81 +129,81 @@ Commands:
     }
 }
 
-async function handleGroupMentionDetection(sock, chatId, message, senderId) {
+// SIMPLIFIED VERSION - Using the same detection as your example code
+async function handleGroupStatusMention(sock, m) {
     try {
-        const config = await getAntigroupmention(chatId, 'on');
+        // Check if it's a group status mention message (same as your example)
+        if (m.mtype?.includes("groupStatusMentionMessage") && m.isGroup) {
+            const chatId = m.key.remoteJid;
+            const senderId = m.sender || m.key.participant;
+            
+            // Get configuration
+            const config = await getAntigroupmention(chatId);
+            if (!config || !config.enabled) return;
 
-        // If not enabled, return early
-        if (!config || !config.enabled) return;
+            // Check if sender is admin
+            const senderIsAdmin = await isAdmin(sock, chatId, senderId);
+            if (senderIsAdmin) return; // Admins are allowed
 
-        const text = message.message?.conversation || 
-                     message.message?.extendedTextMessage?.text || '';
+            console.log(`Group Status Mention triggered by ${senderId} in ${chatId}`);
 
-        // Check for @everyone or @all mentions
-        const hasTagAll = text.includes('@everyone') || text.includes('@all');
+            // Execute the configured action
+            switch (config.action) {
+                case 'delete':
+                    // Delete the group status mention
+                    try {
+                        await sock.sendMessage(chatId, { delete: m.key }); // Baileys v6+
+                    } catch {
+                        await sock.messageDelete(chatId, m.key); // fallback
+                    }
+                    
+                    console.log('Group status mention deleted');
+                    break;
 
-        // Also check if mentioning many users (mass mention detection)
-        const mentions = message.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
-        const hasMassMention = mentions.length >= 10; // Adjust threshold as needed
+                case 'warn':
+                    // Delete first
+                    try {
+                        await sock.sendMessage(chatId, { delete: m.key });
+                    } catch {
+                        await sock.messageDelete(chatId, m.key);
+                    }
 
-        if (!hasTagAll && !hasMassMention) return;
+                    // Send warning
+                    await sock.sendMessage(chatId, {
+                        text: `⚠️ @${senderId.split('@')[0]}\n\nMentioning group status is not allowed!\n\nOnly admins can mention the group status.`,
+                        mentions: [senderId]
+                    }, { quoted: m });
 
-        // Check if sender is admin
-        const senderIsAdmin = await isAdmin(sock, chatId, senderId);
-        if (senderIsAdmin) return; // Admins are allowed
+                    console.log('Group status mention deleted and warning sent');
+                    break;
 
-        console.log(`Antigroupmention triggered by ${senderId} in ${chatId}`);
+                case 'kick':
+                    // Delete first
+                    try {
+                        await sock.sendMessage(chatId, { delete: m.key });
+                    } catch {
+                        await sock.messageDelete(chatId, m.key);
+                    }
 
-        const fake = createFakeContact(message);
+                    // Send notification
+                    await sock.sendMessage(chatId, {
+                        text: `🚫 @${senderId.split('@')[0]} has been removed for mentioning group status.`,
+                        mentions: [senderId]
+                    }, { quoted: m });
 
-        // Execute the configured action
-        switch (config.action) {
-            case 'delete':
-                await sock.sendMessage(chatId, {
-                    delete: message.key
-                });
-                console.log('Message deleted');
-                break;
+                    // Remove the user
+                    await sock.groupParticipantsUpdate(chatId, [senderId], 'remove');
 
-            case 'warn':
-                // Delete the message first
-                await sock.sendMessage(chatId, {
-                    delete: message.key
-                });
-
-                // Send warning
-                await sock.sendMessage(chatId, {
-                    text: `⚠️ @${senderId.split('@')[0]}\n\nUsing @everyone or @all is not allowed in this group!\n\nOnly admins can use group mentions.`,
-                    mentions: [senderId]
-                }, { quoted: fake });
-
-                console.log('Message deleted and warning sent');
-                break;
-
-            case 'kick':
-                // Delete the message
-                await sock.sendMessage(chatId, {
-                    delete: message.key
-                });
-
-                // Send notification before kicking
-                await sock.sendMessage(chatId, {
-                    text: `🚫 @${senderId.split('@')[0]} has been removed for using unauthorized group mentions.`,
-                    mentions: [senderId]
-                }, { quoted: fake });
-
-                // Remove the user
-                await sock.groupParticipantsUpdate(chatId, [senderId], 'remove');
-
-                console.log('Message deleted and user kicked');
-                break;
+                    console.log('Group status mention deleted and user kicked');
+                    break;
+            }
         }
     } catch (error) {
-        console.error('Error in handleGroupMentionDetection:', error);
+        console.error('Error in handleGroupStatusMention:', error);
     }
 }
 
 module.exports = {
     antigroupmentionCommand,
-    handleGroupMentionDetection
+    handleGroupStatusMention // Export the simplified handler
 };
