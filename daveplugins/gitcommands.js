@@ -473,14 +473,14 @@ const gitrepoCommand = {
 
     if (!args[0]) {
       return await sock.sendMessage(from, {
-        text: `*📦 GitHub Repository Downloader*\n\nUsage: .gitrepo <github-url>\n\nExample:\n.gitrepo https://github.com/horlapookie/VENOM-X\n\n*Bot:* ${config.botName}\n*Note:* Supports public repositories only.`
+        text: `*📦 GitHub Repository Downloader*\n\nUsage: .gitrepo <github-url>\n\nExample:\n.gitrepo https://github.com/VENOM-X/VENOM-X\n\n*Bot:* ${config.botName}\n*Note:* Supports public repositories only.`
       }, { quoted: msg });
     }
 
     let repoUrl = args[0];
 
-    if (repoUrl.toLowerCase() === 'this' || repoUrl.toLowerCase() === 'horlapookie') {
-      repoUrl = 'https://github.com/horlapookie/Eclise-MD';
+    if (repoUrl.toLowerCase() === 'this' || repoUrl.toLowerCase() === 'VENOM-X') {
+      repoUrl = 'https://github.com/VENOM-X/Eclise-MD';
     }
 
     const githubRegex = /^https?:\/\/github\.com\/([^\/]+)\/([^\/]+)(?:\/.*)?$/;

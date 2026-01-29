@@ -75,7 +75,7 @@ export default {
       }
 
       await sock.sendMessage(from, {
-        text: `📥 *Pulling latest changes from GitHub...*\n\n🔗 Repository: GitHub.com/horlapookie/Horlapookie-bot\n🤖 Bot: ${config.botName}\n⏳ This may take a moment...`
+        text: `📥 *Pulling latest changes from GitHub...*\n\n🔗 Repository: GitHub.com/VENOM-X/VENOM-X-bot\n🤖 Bot: ${config.botName}\n⏳ This may take a moment...`
       }, { quoted: msg });
 
       // Pull latest changes from GitHub
@@ -89,7 +89,7 @@ export default {
         } catch (e) {
           // Remote doesn't exist, that's fine
         }
-        await execAsync('git remote add origin https://github.com/horlapookie/Horlapookie-bot.git');
+        await execAsync('git remote add origin https://github.com/VENOM-X/VENOM-X-bot.git');
         
         // Fetch latest changes
         await execAsync('git fetch origin main');
@@ -136,7 +136,7 @@ export default {
         }
         
         // Clone fresh repository
-        await execAsync('git clone https://github.com/horlapookie/Horlapookie-bot.git temp_repo');
+        await execAsync('git clone https://github.com/VENOM-X/VENOM-X-bot.git temp_repo');
         await execAsync('cp -r temp_repo/* .');
         await execAsync('cp -r temp_repo/.* . 2>/dev/null || true');
         await execAsync('rm -rf temp_repo');

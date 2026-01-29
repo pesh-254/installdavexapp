@@ -41,7 +41,7 @@ export default {
         throw new Error('Invalid response from API');
       }
 
-      const roseDayText = `🌹 *Happy Rose Day* 🌹\n\n${data.result}\n\n━━━━━━━━━━━━━━━━━━\n💖 _Spread love with Eclipse MD_`;
+      const roseDayText = `🌹 *Happy Rose Day* 🌹\n\n${data.result}\n\n━━━━━━━━━━━━━━━━━━\n💖 _Spread love with Davex-254 MD_`;
 
       await sock.sendMessage(from, {
         text: roseDayText

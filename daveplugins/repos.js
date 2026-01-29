@@ -10,26 +10,26 @@ export default {
       const repoInfo = `𝙍𝙚𝙥𝙤𝙨 𝙤𝙛 "${config.botName}" 𝘽𝙤𝙩:
 
 1. *𝘗𝘶𝘳𝘦 𝘝1 (𝘖𝘳𝘪𝘨𝘪𝘯𝘢𝘭)*  
-   🔗 http://github.com/horlapookie/WhisperRoyalty
+   🔗 http://github.com/VENOM-X/WhisperRoyalty
 
 2. *𝘝1 𝘉𝘦𝘵𝘢 (𝘞𝘩𝘪𝘴𝘱𝘦𝘳𝘙𝘰𝘺𝘢𝘭𝘵𝘺𝘉)*  
-   🔗 https://github.com/horlapookie/WhisperRoyaltyB
+   🔗 https://github.com/VENOM-X/WhisperRoyaltyB
 
 3. *𝙈𝙖𝙞𝙣 ${config.botName}*  
-   🔗 http://Github.com/horlapookie/Horlapookie-bot
+   🔗 http://Github.com/VENOM-X/VENOM-X-bot
 
 ---
 
 *𝙐𝙣𝙡𝙤𝙘𝙠 𝙏𝙝𝙚 𝙋𝙤𝙬𝙚𝙧 𝙤𝙛 𝙔𝙤𝙪𝙧 𝙃𝙞𝙜𝙝𝙣𝙚𝙨𝙨! 👑🚀*
 
 🔓 𝙂𝙚𝙩 𝙔𝙤𝙪𝙧 𝙎𝙚𝙨𝙨𝙞𝙤𝙣 𝙄𝘿 𝙉𝙤𝙬:  
-👉 https://horlapookie-session.onrender.com
+👉 https://VENOM-X-session.onrender.com
 
 👥 𝙅𝙤𝙞𝙣 𝙤𝙪𝙧 𝙒𝙝𝙖𝙩𝙨𝙖𝙥𝙥 𝘾𝙝𝙖𝙣𝙣𝙚𝙡:  
 🔗 https://whatsapp.com/channel/0029Vb6AZrY2f3EMgD8kRQ01
 
 🌐 ${config.botName} 𝙒𝙚𝙗 𝙋𝙤𝙧𝙩𝙖𝙡:  
-🔗 https://horlapookie-botweb-deploy.onrender.com
+🔗 https://VENOM-X-botweb-deploy.onrender.com
 
 📢 𝙏𝙚𝙡𝙚𝙜𝙧𝙖𝙢 𝘾𝙝𝙖𝙣𝙣𝙚𝙡:  
 🔗 https://t.me/+WHL-cThMVYtjOTI8

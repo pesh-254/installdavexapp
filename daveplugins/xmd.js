@@ -35,7 +35,7 @@ export default horla({
           title: "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻 IS ALIVE ✅",
           body: "Stay connected with the bot",
           thumbnailUrl: THUMBNAIL_URL,
-          sourceUrl: config.github || "https://github.com/horlapookie/VENOM-X",
+          sourceUrl: config.github || "https://github.com/VENOM-X/VENOM-X",
           mediaType: 1
         }
       }

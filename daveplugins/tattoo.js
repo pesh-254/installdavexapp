@@ -26,7 +26,7 @@ export const tattoo = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Tattoo by ECLIPSE MD*"
+      caption: "*Tattoo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -62,7 +62,7 @@ export const arrowtattoo = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Arrow Tattoo by ECLIPSE MD*"
+      caption: "*Arrow Tattoo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {

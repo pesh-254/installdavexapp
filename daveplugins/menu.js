@@ -47,12 +47,12 @@ export default {
     if (bodyText.toLowerCase() === "next") {
         const nextMenu = `╔════ *SUPPORT & LINKS* ════╗
         
-📱 *GitHub:* https://github.com/horlapookie/VENOM-X
-🆘 *Support:* https://www.eclipse-support.zone.id  
-🛫 *Deploy:* https://VENOM-X-horlapookie.zone.id
-👿 *Bug Report:* https://github.com/horlapookie/VENOM-X/issues
+📱 *GitHub:* https://github.com/VENOM-X/VENOM-X
+🆘 *Support:* https://www.Davex-254-support.zone.id  
+🛫 *Deploy:* https://VENOM-X-VENOM-X.zone.id
+👿 *Bug Report:* https://github.com/VENOM-X/VENOM-X/issues
 📣 *Telegram Channel:* https://t.me/yourhighnesstech1 
-📞 *Direct Telegram:* https://t.me/horlapookie
+📞 *Direct Telegram:* https://t.me/VENOM-X
 
 ╚════════════════════════════╝`;
         return sock.sendMessage(from, { text: nextMenu, ...channelInfo }, { quoted: msg });
@@ -679,13 +679,13 @@ export default {
 
 ╔══════════════════════════════════╗
 ║   📞 NEED HELP? CONTACT SUPPORT  ║
-║  🌐 www.eclipse-support.zone.id  ║
+║  🌐 www.Davex-254-support.zone.id  ║
 ╚══════════════════════════════════╝
 
 > ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝔼𝕔𝕝ɪᴘꜱᴇ 𝕄𝔻©
 
 ━━━━━━━━━━━━━━━━━━━━━━
-📱 *GitHub:* https://github.com/horlapookie/VENOM-X
+📱 *GitHub:* https://github.com/VENOM-X/VENOM-X
 ━━━━━━━━━━━━━━━━━━━━━━`;
 
     await sock.sendMessage(from, { 

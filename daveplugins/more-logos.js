@@ -27,7 +27,7 @@ export const comic3d = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*3D Comic Logo by ECLIPSE MD*"
+      caption: "*3D Comic Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -64,7 +64,7 @@ export const blackpink = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*BLACKPINK Logo by ECLIPSE MD*"
+      caption: "*BLACKPINK Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -101,7 +101,7 @@ export const silver3d = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Silver 3D Logo by ECLIPSE MD*"
+      caption: "*Silver 3D Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -138,7 +138,7 @@ export const colorneon = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Colorful Neon Logo by ECLIPSE MD*"
+      caption: "*Colorful Neon Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -175,7 +175,7 @@ export const balloon3d = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*3D Balloon Logo by ECLIPSE MD*"
+      caption: "*3D Balloon Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -212,7 +212,7 @@ export const paint3d = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*3D Paint Logo by ECLIPSE MD*"
+      caption: "*3D Paint Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {
@@ -249,7 +249,7 @@ export const wetglass = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Wet Glass Logo by ECLIPSE MD*"
+      caption: "*Wet Glass Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {

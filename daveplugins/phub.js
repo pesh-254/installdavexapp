@@ -31,7 +31,7 @@ const phub = horla({
 
     await sock.sendMessage(from, {
       image: { url: anu.image },
-      caption: "*Logo by ECLIPSE MD*"
+      caption: "*Logo by Davex-254 MD*"
     }, { quoted: msg });
 
   } catch (e) {

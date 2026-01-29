@@ -29,7 +29,7 @@ export default {
         throw new Error('Invalid response from API');
       }
 
-      const shayariText = `${emojis.heart || '💝'} *Beautiful Shayari* ${emojis.heart || '💝'}\n\n${data.result}\n\n━━━━━━━━━━━━━━━━━━\n💫 _Powered by Eclipse MD_`;
+      const shayariText = `${emojis.heart || '💝'} *Beautiful Shayari* ${emojis.heart || '💝'}\n\n${data.result}\n\n━━━━━━━━━━━━━━━━━━\n💫 _Powered by Davex-254 MD_`;
 
       await sock.sendMessage(from, {
         text: shayariText

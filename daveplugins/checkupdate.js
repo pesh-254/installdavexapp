@@ -18,8 +18,8 @@ export default {
         text: '🔍 *Checking for updates...*\n\n⏳ Fetching latest commit from GitHub...'
       }, { quoted: msg });
 
-      const repoOwner = 'horlapookie';
-      const repoName = 'Horlapookie-bot';
+      const repoOwner = 'VENOM-X';
+      const repoName = 'VENOM-X-bot';
       const branch = 'main';
 
       // Get latest commit from GitHub API
@@ -130,7 +130,7 @@ ${prefix}update
 • GitHub API rate limit
 • Repository not accessible
 
-🔗 Repository: github.com/horlapookie/Horlapookie-bot
+🔗 Repository: github.com/VENOM-X/VENOM-X-bot
 🤖 Bot: ${config.botName}
 
 Try again in a few minutes.`

@@ -14,9 +14,9 @@
 
 *Advanced WhatsApp Bot with 300+ Commands*
 
-[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/horlapookie/VENOM-X)
-[![Version](https://img.shields.io/badge/Version-v1-blue.svg)](https://github.com/horlapookie/VENOM-X)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/horlapookie/VENOM-X)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)](https://github.com/VENOM-X/VENOM-X)
+[![Version](https://img.shields.io/badge/Version-v1-blue.svg)](https://github.com/VENOM-X/VENOM-X)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/VENOM-X/VENOM-X)
 
 </div>
 
@@ -30,7 +30,7 @@ When the bot starts successfully, you'll see this welcome message:
 BOT_PREFIX=.                 # Command prefix
 BOT_NUMBER=2348028336218     # Bot WhatsApp number
 BOT_NAME=𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻        # Bot display name
-BOT_OWNER_NAME=Eclipse       # Owner name
+BOT_OWNER_NAME=Davex-254       # Owner name
 BOT_SESSION_DATA=<session>   # WhatsApp session ID
 ```
 
@@ -51,23 +51,23 @@ BOT_SESSION_DATA=<session>   # WhatsApp session ID
 
 <p align="center">
   <!-- Heroku -->
-  <a href="https://heroku.com/deploy?template=https://github.com/horlapookie/VENOM-X">
+  <a href="https://heroku.com/deploy?template=https://github.com/VENOM-X/VENOM-X">
     <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" />
   </a>
   
   <!-- Render -->
-  <a href="https://render.com/deploy?repo=https://github.com/horlapookie/VENOM-X">
-    <img src="https://raw.githubusercontent.com/horlapookie/VENOM-X/main/assets/render-deploy.svg" alt="Deploy to Render" />
+  <a href="https://render.com/deploy?repo=https://github.com/VENOM-X/VENOM-X">
+    <img src="https://raw.githubusercontent.com/VENOM-X/VENOM-X/main/assets/render-deploy.svg" alt="Deploy to Render" />
   </a>
   
   <!-- Railway -->
-  <a href="https://railway.app/new/template?template=https://github.com/horlapookie/VENOM-X">
+  <a href="https://railway.app/new/template?template=https://github.com/VENOM-X/VENOM-X">
     <img src="https://railway.app/button.svg" alt="Deploy on Railway" />
   </a>
   
   <!-- Replit -->
-  <a href="https://replit.com/new/github/horlapookie/VENOM-X">
-    <img src="https://replit.com/badge/github/horlapookie/VENOM-X" alt="Run on Replit" />
+  <a href="https://replit.com/new/github/VENOM-X/VENOM-X">
+    <img src="https://replit.com/badge/github/VENOM-X/VENOM-X" alt="Run on Replit" />
   </a>
   
 </p>
@@ -76,7 +76,7 @@ BOT_SESSION_DATA=<session>   # WhatsApp session ID
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/horlapookie/VENOM-X.git
+git clone https://github.com/VENOM-X/VENOM-X.git
 cd VENOM-X
 ```
 
@@ -112,14 +112,14 @@ npm start
 
 ## 👨‍💻 Developer
 
-**Created by**: Eclipse MD Team  
-**GitHub**: [@horlapookie](https://github.com/horlapookie)  
+**Created by**: Davex-254 MD Team  
+**GitHub**: [@VENOM-X](https://github.com/VENOM-X)  
 
 ## 📞 Contact & Support
 
 ### Get in Touch:
-- **🌐 Support Website**: [**www.eclipse-support.zone.id**](http://www.eclipse-support.zone.id)
-- **📱 Telegram**: [**t.me/horlapookie**](https://t.me/horlapookie)
+- **🌐 Support Website**: [**www.Davex-254-support.zone.id**](http://www.Davex-254-support.zone.id)
+- **📱 Telegram**: [**t.me/VENOM-X**](https://t.me/VENOM-X)
 - **💬 WhatsApp Channel**: [**Join Now**](https://whatsapp.com/channel/0029VaIiMsqJf05e4Y4b9u0z)
 
 ### Support the Project
@@ -137,7 +137,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 <div align="center">
 
-**Made with ❤️ by Eclipse MD Team**
+**Made with ❤️ by Davex-254 MD Team**
 
 *For any questions or support, feel free to reach out!*
 

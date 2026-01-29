@@ -89,7 +89,7 @@ export default {
       await sock.sendMessage(from, { react: { text: '✅', key: msg.key } });
 
       await sock.sendMessage(from, {
-        text: `✅ *PM BUG COMPLETED*\n\n🎯 Target: +${clientNumber}\n💣 Payloads Sent: ${amount}x Scheduled Calls\n📦 Total Data: ~6.5MB\n📊 Status: DEVASTATED\n⚠️ CRITICAL: Wait 5+ minutes before next attack\n\n💀 ECLIPSE XMD - EXTREME MODE`
+        text: `✅ *PM BUG COMPLETED*\n\n🎯 Target: +${clientNumber}\n💣 Payloads Sent: ${amount}x Scheduled Calls\n📦 Total Data: ~6.5MB\n📊 Status: DEVASTATED\n⚠️ CRITICAL: Wait 5+ minutes before next attack\n\n💀 Davex-254 XMD - EXTREME MODE`
       }, { quoted: msg });
 
       console.log(`[PMBUG] Extreme attack completed on ${clientNumber}`);

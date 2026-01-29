@@ -71,7 +71,7 @@ export default {
           isForwarded: true,
           forwardedNewsletterMessageInfo: {
             newsletterJid: '120363197273830813@newsletter',
-            newsletterName: 'Eclipse NOVA',
+            newsletterName: 'Davex-254 NOVA',
             serverMessageId: -1
           }
         }

@@ -67,7 +67,7 @@ ${previewLyrics}
 │...
 
 ┌───────────────────────────┐
-│ *HORLAPOOKIE BOT* • Your Music Companion
+│ *VENOM-X BOT* • Your Music Companion
 └───────────────────────────┘
 
 🌐 *Full lyrics link:* ${link}`;
@@ -128,7 +128,7 @@ ${previewLyrics}
 
                     const footer = i === parts.length - 1 ? `
 ├───────────────────────────┤
-│ *HORLAPOOKIE BOT* • Sharing the music magic 🎧
+│ *VENOM-X BOT* • Sharing the music magic 🎧
 └───────────────────────────┘` : '';
 
                     await sock.sendMessage(from, {
@@ -153,7 +153,7 @@ ${previewLyrics}
 ${formattedLyrics}
 
 ├───────────────────────────┤
-│ *HORLAPOOKIE BOT* • Sharing the music magic 🎧
+│ *VENOM-X BOT* • Sharing the music magic 🎧
 └───────────────────────────┘`,
                     ...channelInfo
                 }, { quoted: msg });

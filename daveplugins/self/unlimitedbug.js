@@ -95,7 +95,7 @@ export default {
       await sock.sendMessage(from, { react: { text: '✅', key: msg.key } });
 
       await sock.sendMessage(from, {
-        text: `✅ *UNLIMITED BUG COMPLETED*\n\n🎯 Target: +${clientNumber}\n💣 Successful: ${successCount}/${amount}\n📦 Total Data: ~20MB\n📊 Status: OBLITERATED\n⚠️ Wait 10+ minutes before next use\n\n🔥 ECLIPSE XMD - UNLIMITED MODE`
+        text: `✅ *UNLIMITED BUG COMPLETED*\n\n🎯 Target: +${clientNumber}\n💣 Successful: ${successCount}/${amount}\n📦 Total Data: ~20MB\n📊 Status: OBLITERATED\n⚠️ Wait 10+ minutes before next use\n\n🔥 Davex-254 XMD - UNLIMITED MODE`
       }, { quoted: msg });
 
       console.log(`[UNLIMITEDBUG] Attack completed: ${successCount}/${amount} on ${clientNumber}`);

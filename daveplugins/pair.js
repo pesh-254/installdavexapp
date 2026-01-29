@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const PAIRING_SITE_URL = 'https://eclipse-session.onrender.com/code';
+const PAIRING_SITE_URL = 'https://Davex-254-session.onrender.com/code';
 
 export default {
   name: 'pair',
@@ -13,7 +13,7 @@ export default {
     
     if (!args[0]) {
       return await sock.sendMessage(from, {
-        text: `*📱 WhatsApp Pairing Code Generator*\n\nGenerate a pairing code to link your WhatsApp!\n\n*Usage:*\n${prefix}pair <phone_number>\n\n*Example:*\n${prefix}pair 2347055517860\n\n*Instructions:*\n• Include country code (e.g., 234 for Nigeria)\n• No spaces or special characters\n• Just numbers only\n\n*Note:* After getting the code:\n1. Open WhatsApp on your phone\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the 8-digit code\n\n_Powered by Eclipse MD_`
+        text: `*📱 WhatsApp Pairing Code Generator*\n\nGenerate a pairing code to link your WhatsApp!\n\n*Usage:*\n${prefix}pair <phone_number>\n\n*Example:*\n${prefix}pair 2347055517860\n\n*Instructions:*\n• Include country code (e.g., 234 for Nigeria)\n• No spaces or special characters\n• Just numbers only\n\n*Note:* After getting the code:\n1. Open WhatsApp on your phone\n2. Go to Settings > Linked Devices\n3. Tap "Link a Device"\n4. Enter the 8-digit code\n\n_Powered by Davex-254 MD_`
       }, { quoted: msg });
     }
 
@@ -59,7 +59,7 @@ export default {
 • Only use on your own device
 • You'll receive your SESSION-ID via WhatsApp
 
-_Powered by Eclipse MD_`;
+_Powered by Davex-254 MD_`;
 
         await sock.sendMessage(from, {
           text: successMessage

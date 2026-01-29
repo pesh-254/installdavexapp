@@ -15,7 +15,7 @@ export default {
     const elapsed = Date.now() - start;
 
     await sock.sendMessage(msg.key.remoteJid, {
-      text: `📡 *ECLIPSE MD STATUS*\n\n🚀 *Latency:* \`${elapsed} ms\`\n🔋 *System:* Online\n🌐 *Mode:* ${global.botMode || 'public'}\n\n_Everything is running smoothly._`,
+      text: `📡 *Davex-254 MD STATUS*\n\n🚀 *Latency:* \`${elapsed} ms\`\n🔋 *System:* Online\n🌐 *Mode:* ${global.botMode || 'public'}\n\n_Everything is running smoothly._`,
       react: { text: emojis.success, key: msg.key }
     }, { quoted: msg });
   },

@@ -1,4 +1,4 @@
-// created with love by horlapookie 🧬🧬
+// created with love by VENOM-X 🧬🧬
 
 import { channelInfo } from '../lib/channelConfig.js';
 
@@ -11,7 +11,7 @@ export default {
 
     // 🔒 Hardcoded owner details
     const ownerNumber = '2347049044897'; // no +
-    const ownerName = 'horlapookie';
+    const ownerName = 'VENOM-X';
 
     try {
       // Create vCard contact

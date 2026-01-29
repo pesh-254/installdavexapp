@@ -1,10 +1,10 @@
 {
-  "name": "Eclipse MD Bot",
+  "name": "Davex-254 MD Bot",
   "description": "A powerful multi-device WhatsApp bot built with Node.js and Docker — includes AI support, automation, and 400+ commands.",
-  "repository": "https://github.com/horlapookie/VENOM-X",
+  "repository": "https://github.com/VENOM-X/VENOM-X",
   "logo": "https://i.imgur.com/zQx8lE5.png",
   "keywords": ["whatsapp", "bot", "nodejs", "docker", "ai", "VENOM-X"],
-  "website": "https://github.com/horlapookie/VENOM-X",
+  "website": "https://github.com/VENOM-X/VENOM-X",
   "stack": "container",
   "env": {
     "NODE_ENV": {
@@ -124,6 +124,6 @@
   },
   "addons": [],
   "scripts": {
-    "postdeploy": "echo '✅ Eclipse MD Bot has been successfully deployed!'"
+    "postdeploy": "echo '✅ Davex-254 MD Bot has been successfully deployed!'"
   }
 }

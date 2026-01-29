@@ -16,8 +16,8 @@ export default {
       const date = moment().format('DD/MM/YYYY');
 
       const loadingMessages = [
-        "```⚡ HORLAPOOKIE-XMD Injecting malware⚡```",
-        "```🔐 HORLAPOOKIE-XMD into device \n 0%```",
+        "```⚡ VENOM-X-XMD Injecting malware⚡```",
+        "```🔐 VENOM-X-XMD into device \n 0%```",
         "```♻️ transfering photos \n █ 10%```",
         "```♻️ transfer successful \n █ █ 20%```",
         "```♻️ transfering videos \n █ █ █ 30%```",
@@ -29,7 +29,7 @@ export default {
         "```♻️ transfering whatsapp chat \n █ █ █ █ █ █ █ █ █ 90%```",
         "```♻️ transfer successful \n █ █ █ █ █ █ █ █ █ █ 100%```",
         "```📲 System hyjacking on process.. \n Conecting to Server```",
-        "```🔌 HORLAPOOKIE-XMD successfully connected... \n Riciving data...```",
+        "```🔌 VENOM-X-XMD successfully connected... \n Riciving data...```",
         "```💡 Data hyjacked from divice 100% completed \n killing all evidence killing all malwares...```",
         "```🔋 HACKING COMPLETED ```",
         "```📤 SENDING ALL PHONE DOCUMENTS```"
@@ -73,7 +73,7 @@ export default {
       }
 
       const finalMessage = `
-😏 *VICTIM SYSTEM HORLAPOOKIE-XMD DEMOLISHED!* 🤔
+😏 *VICTIM SYSTEM VENOM-X-XMD DEMOLISHED!* 🤔
 
 📜 BY *${config.botName}* ⚪
 *Date*: ${date} | *Time*: ${time} (WAT)

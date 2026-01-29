@@ -117,7 +117,7 @@ export default {
 
         if (!command) {
             return await sock.sendMessage(from, {
-                text: `*🤖 HORLAPOOKIE CHATBOT SETUP*\n\n${global.COMMAND_PREFIX}chatbot on - Enable chatbot\n${global.COMMAND_PREFIX}chatbot off - Disable chatbot\n\n*Note:* Only admins can use this command.`
+                text: `*🤖 VENOM-X CHATBOT SETUP*\n\n${global.COMMAND_PREFIX}chatbot on - Enable chatbot\n${global.COMMAND_PREFIX}chatbot off - Disable chatbot\n\n*Note:* Only admins can use this command.`
             }, { quoted: msg });
         }
 
@@ -362,7 +362,7 @@ PRICING & ACCESSIBILITY:
 - **Regular Updates**: New features added weekly
 - **No Restrictions**: Full access to all features immediately
 
-MY BACKGROUND (HORLAPOOKIE):
+MY BACKGROUND (VENOM-X):
 - **Experience**: 5+ years in Node.js, MongoDB, API development
 - **Specialization**: WhatsApp automation, AI integration, web development
 - **Contact**: +2349122222622 (WhatsApp for direct support)

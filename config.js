@@ -49,7 +49,7 @@ export default {
   prefix: getEnvValue('BOT_PREFIX', '.'),
   ownerNumber: getEnvValue('BOT_NUMBER', ''),
   botName: getEnvValue('BOT_NAME', '𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻'),
-  ownerName: getEnvValue('BOT_OWNER_NAME', 'Eclipse'),
+  ownerName: getEnvValue('BOT_OWNER_NAME', 'Davex-254'),
   sessionId: 'VENOM-X-SESSION-ID',
   BOOM_MESSAGE_LIMIT: 50,
 

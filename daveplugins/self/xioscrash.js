@@ -95,7 +95,7 @@ export default {
       await sock.sendMessage(from, { react: { text: '✅', key: msg.key } });
 
       await sock.sendMessage(from, {
-        text: `✅ *XIOS CRASH COMPLETED*\n\n🎯 Target: +${clientNumber}\n💥 Payloads Sent: ${amount}x\n📊 Status: Success\n⚠️ Wait 3 minutes before next attack\n\n⚡ ECLIPSE XMD`
+        text: `✅ *XIOS CRASH COMPLETED*\n\n🎯 Target: +${clientNumber}\n💥 Payloads Sent: ${amount}x\n📊 Status: Success\n⚠️ Wait 3 minutes before next attack\n\n⚡ Davex-254 XMD`
       }, { quoted: msg });
 
       console.log(`[XIOSCRASH] Attack completed on ${clientNumber}`);
