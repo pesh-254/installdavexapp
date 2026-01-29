@@ -152,7 +152,7 @@ For getting Surahs type ${config.prefix}surah Al-Fatiha 1:1 or ${config.prefix}s
             title: `*${config.botName}* HOLY QURAN SURAH LIST`,
             body: "Seek guidance from the Quran, for it is a light in the darkness",
             thumbnailUrl: "https://i.imgur.com/quranimage.jpg",
-            sourceUrl: "https://whatsapp.com/channel/0029Vb6AZrY2f3EMgD8kRQ01",
+            sourceUrl: "https://whatsapp.com/channel/0029VbApvFQ2Jl84lhONkc3k",
             mediaType: 1,
             renderLargerThumbnail: true
           }

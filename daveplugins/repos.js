@@ -26,7 +26,7 @@ export default {
 👉 https://VENOM-X-session.onrender.com
 
 👥 𝙅𝙤𝙞𝙣 𝙤𝙪𝙧 𝙒𝙝𝙖𝙩𝙨𝙖𝙥𝙥 𝘾𝙝𝙖𝙣𝙣𝙚𝙡:  
-🔗 https://whatsapp.com/channel/0029Vb6AZrY2f3EMgD8kRQ01
+🔗 https://whatsapp.com/channel/0029VbApvFQ2Jl84lhONkc3k
 
 🌐 ${config.botName} 𝙒𝙚𝙗 𝙋𝙤𝙧𝙩𝙖𝙡:  
 🔗 https://VENOM-X-botweb-deploy.onrender.com

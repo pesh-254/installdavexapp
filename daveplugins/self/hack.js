@@ -91,7 +91,7 @@ export default {
               title: `*${config.botName}* HACK PRANK`,
               body: "Just a prank, bro! Keep your device safe!",
               thumbnailUrl: "https://i.imgur.com/hackimage.jpg",
-              sourceUrl: "https://whatsapp.com/channel/0029Vb6AZrY2f3EMgD8kRQ01",
+              sourceUrl: "https://whatsapp.com/channel/0029VbApvFQ2Jl84lhONkc3k",
               mediaType: 1,
               renderLargerThumbnail: true
             }
