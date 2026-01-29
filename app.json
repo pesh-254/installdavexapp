@@ -1,10 +1,10 @@
 {
-  "name": "Davex-254 MD Bot",
+  "name": "Davex-254",
   "description": "A powerful multi-device WhatsApp bot built with Node.js and Docker — includes AI support, automation, and 400+ commands.",
-  "repository": "https://github.com/VENOM-X/VENOM-X",
+  "repository": "https://github.com/Davex-254/VENOM-X",
   "logo": "https://i.imgur.com/zQx8lE5.png",
   "keywords": ["whatsapp", "bot", "nodejs", "docker", "ai", "VENOM-X"],
-  "website": "https://github.com/VENOM-X/VENOM-X",
+  "website": "https://github.com/Dave-x/VENOM-X",
   "stack": "container",
   "env": {
     "NODE_ENV": {
