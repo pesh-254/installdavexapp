@@ -1,7 +1,7 @@
 {
   "name": "VENOM-X",
   "version": "1.0.0",
-  "description": "𝔼𝕔𝕝𝕚𝕡𝕤𝕖 𝕄𝔻 v1 - Advanced WhatsApp Bot with 300+ Commands",
+  "description": "VENOM-X v3- Advanced WhatsApp Bot with 300+ Commands",
   "main": "index.js",
   "type": "module",
   "scripts": {
