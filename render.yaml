@@ -1,0 +1,100 @@
+services:
+  - type: web
+    name: VENOM-X
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: oregon
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_PREFIX
+        sync: false
+        generateValue: false
+        description: "Command prefix (default: .)"
+      - key: BOT_NUMBER
+        sync: false
+        generateValue: false
+        description: "Your WhatsApp number without + or country code prefix"
+      - key: BOT_OWNER_NAME
+        sync: false
+        generateValue: false
+        description: "Bot owner display name"
+      - key: BOT_NAME
+        sync: false
+        generateValue: false
+        description: "Bot display name"
+      - key: BOT_SESSION_DATA
+        sync: false
+        generateValue: false
+        description: "Session ID"
+      - key: OPENAI_API_KEY
+        sync: false
+        generateValue: false
+        description: "Optional: OpenAI API key"
+      - key: GEMINI_API_KEY
+        sync: false
+        generateValue: false
+        description: "Optional: Google Gemini API key"
+      - key: AUTO_VIEW_MESSAGE
+        sync: false
+        generateValue: false
+        description: "Automatically view messages (true/false)"
+      - key: AUTO_VIEW_STATUS
+        sync: false
+        generateValue: false
+        description: "Automatically view WhatsApp statuses (true/false)"
+      - key: AUTO_REACT_STATUS
+        sync: false
+        generateValue: false
+        description: "Automatically react to statuses (true/false)"
+      - key: AUTO_REACT
+        sync: false
+        generateValue: false
+        description: "Automatically react to messages (true/false)"
+      - key: AUTO_STATUS_EMOJI
+        sync: false
+        generateValue: false
+        description: "Emoji for status reactions"
+      - key: AUTO_TYPING
+        sync: false
+        generateValue: false
+        description: "Show typing indicator (true/false)"
+      - key: AUTO_RECORDING
+        sync: false
+        generateValue: false
+        description: "Show recording indicator (true/false)"
+      - key: ANTICALL
+        sync: false
+        generateValue: false
+        description: "Enable anti-call (true/false)"
+      - key: ANTIVIDEOCALL
+        sync: false
+        generateValue: false
+        description: "Enable anti-video call (true/false)"
+      - key: ANTICALL_MODE
+        sync: false
+        generateValue: false
+        description: "Call rejection mode (cut/block)"
+      - key: ANTIDELETE
+        sync: false
+        generateValue: false
+        description: "Enable anti-delete (true/false)"
+      - key: ANTILINK
+        sync: false
+        generateValue: false
+        description: "Enable anti-link (true/false)"
+      - key: ANTIBUG
+        sync: false
+        generateValue: false
+        description: "Enable anti-bug (true/false)"
+      - key: ANTISPAM
+        sync: false
+        generateValue: false
+        description: "Enable anti-spam (true/false)"
+      - key: ANTITAG
+        sync: false
+        generateValue: false
+        description: "Enable anti-tag (true/false)"
+    autoDeploy: true
+    healthCheckPath: /

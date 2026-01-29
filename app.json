@@ -1,0 +1,129 @@
+{
+  "name": "Eclipse MD Bot",
+  "description": "A powerful multi-device WhatsApp bot built with Node.js and Docker — includes AI support, automation, and 400+ commands.",
+  "repository": "https://github.com/horlapookie/VENOM-X",
+  "logo": "https://i.imgur.com/zQx8lE5.png",
+  "keywords": ["whatsapp", "bot", "nodejs", "docker", "ai", "VENOM-X"],
+  "website": "https://github.com/horlapookie/VENOM-X",
+  "stack": "container",
+  "env": {
+    "NODE_ENV": {
+      "description": "Set the environment to production",
+      "value": "production"
+    },
+    "BOT_PREFIX": {
+      "description": "Command prefix (default: .)",
+      "required": false
+    },
+    "BOT_NUMBER": {
+      "description": "Your WhatsApp number without + or country code prefix",
+      "required": true
+    },
+    "BOT_OWNER_NAME": {
+      "description": "Bot owner display name",
+      "required": false
+    },
+    "BOT_NAME": {
+      "description": "Bot display name",
+      "required": false
+    },
+    "BOT_SESSION_DATA": {
+      "description": "Session ID",
+      "required": false
+    },
+    "GIPHY_API_KEY": {
+      "description": "Optional: Giphy API key",
+      "required": false
+    },
+    "FOOTBALL_API_KEY": {
+      "description": "Optional: Football API key",
+      "required": false
+    },
+    "IMGUR_CLIENT_ID": {
+      "description": "Optional: Imgur Client ID",
+      "required": false
+    },
+    "COPILOT_API_KEY": {
+      "description": "Optional: Copilot API key",
+      "required": false
+    },
+    "GEMINI_API_KEY": {
+      "description": "Optional: Gemini API key",
+      "required": false
+    },
+    "OPENAI_API_KEY": {
+      "description": "Optional: OpenAI API key",
+      "required": false
+    },
+    "AUTO_VIEW_MESSAGE": {
+      "description": "Automatically view messages (true/false)",
+      "required": false
+    },
+    "AUTO_VIEW_STATUS": {
+      "description": "Automatically view WhatsApp statuses (true/false)",
+      "required": false
+    },
+    "AUTO_REACT_STATUS": {
+      "description": "Automatically react to statuses (true/false)",
+      "required": false
+    },
+    "AUTO_REACT": {
+      "description": "Automatically react to messages (true/false)",
+      "required": false
+    },
+    "AUTO_STATUS_EMOJI": {
+      "description": "Emoji for status reactions",
+      "required": false
+    },
+    "AUTO_TYPING": {
+      "description": "Show typing indicator (true/false)",
+      "required": false
+    },
+    "AUTO_RECORDING": {
+      "description": "Show recording indicator (true/false)",
+      "required": false
+    },
+    "ANTICALL": {
+      "description": "Enable anti-call (true/false)",
+      "required": false
+    },
+    "ANTIVIDEOCALL": {
+      "description": "Enable anti-video call (true/false)",
+      "required": false
+    },
+    "ANTICALL_MODE": {
+      "description": "Call rejection mode (cut/block)",
+      "required": false
+    },
+    "ANTIDELETE": {
+      "description": "Enable anti-delete (true/false)",
+      "required": false
+    },
+    "ANTILINK": {
+      "description": "Enable anti-link (true/false)",
+      "required": false
+    },
+    "ANTIBUG": {
+      "description": "Enable anti-bug (true/false)",
+      "required": false
+    },
+    "ANTISPAM": {
+      "description": "Enable anti-spam (true/false)",
+      "required": false
+    },
+    "ANTITAG": {
+      "description": "Enable anti-tag (true/false)",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": [],
+  "scripts": {
+    "postdeploy": "echo '✅ Eclipse MD Bot has been successfully deployed!'"
+  }
+}

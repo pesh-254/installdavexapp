@@ -1,0 +1,31 @@
+# Secrets and API keys
+*.env
+.env*
+config.js
+settings.js
+config.json
+settings.json
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
