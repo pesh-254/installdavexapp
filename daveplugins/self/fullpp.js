@@ -1,6 +1,6 @@
 
 import { horla } from '../../lib/horla.js';
-import { generateProfilePicture } from '../../fredi/dl/Function.js';
+import { generateProfilePicture } from '../../dave/dl/Function.js';
 import fs from 'fs';
 
 export default horla({
