@@ -25,7 +25,7 @@ import { storeMessage, handleMessageRevocation } from './daveplugins/self/antide
 import { readState as readAnticallState } from './daveplugins/self/anticall.js';
 import { checkAutoGreetings } from './daveplugins/self/autogreet.js';
 import chalk from 'chalk';
-import { PhoneNumber } from 'awesome-phonenumber';
+import PhoneNumber from 'awesome-phonenumber';
 import readline from 'readline';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
