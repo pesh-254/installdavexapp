@@ -1,6 +1,3 @@
-// --- VENOM-X WhatsApp Bot ---
-// Complete with DAVE-AI session format, pairing code, and auto-joins
-
 import makeWASocket, {
   useMultiFileAuthState,
   DisconnectReason,
@@ -30,7 +27,7 @@ import readline from 'readline';
 import dotenv from 'dotenv';
 import NodeCache from 'node-cache';
 
-// Load environment variables
+// Load environment variables FIRST
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,13 +51,6 @@ global.isBotConnected = false;
 global.errorRetryCount = 0;
 global.botname = "VENOM-X"
 global.themeemoji = "⚡"
-
-// --- STARTUP GUARD ---
-const TEST_MODE = process.env.TEST_MODE_ONLY === 'true';
-if (TEST_MODE) {
-  log('🛑 TEST MODE ACTIVATED - Bot will load commands but NOT connect to WhatsApp', 'yellow');
-  console.log('='.repeat(60));
-}
 
 // --- IMPORT CONFIG ---
 import config from './config.js';
@@ -193,7 +183,7 @@ async function checkAndHandleSessionFormat() {
   }
 }
 
-// --- 🌟 NEW: Enhanced Session Management ---
+// --- 🌟 NEW: Enhanced Session Management (KEEP THIS - YOU LOVE IT) ---
 async function saveLoginMethod(method) {
   await fs.promises.mkdir(sessionDir, { recursive: true });
   await fs.promises.writeFile(loginFile, JSON.stringify({ method }, null, 2));
@@ -342,10 +332,10 @@ function createFakeContact(message) {
   };
 }
 
-// --- 🌟 NEW: Welcome Message with Auto-joins ---
+// --- 🌟 NEW: Welcome Message with Auto-joins (USING ORIGINAL WORKING LOGIC) ---
 async function sendWelcomeMessage(sock) {
   if (global.isBotConnected) return;
-  
+
   await delay(10000); // Wait 10 seconds for stabilization
 
   const detectPlatform = () => {
@@ -355,7 +345,7 @@ async function sendWelcomeMessage(sock) {
     if (process.env.PORTS && process.env.CYPHERX_HOST_ID) return "🌀 CypherX Platform";
     if (process.env.P_SERVER_UUID) return "🖥️ Panel";
     if (process.env.LXC) return "📦 Linux Container (LXC)";
-    
+
     switch (process.platform) {
       case "win32": return "🪟 Windows";
       case "darwin": return "🍎 macOS";
@@ -370,7 +360,7 @@ async function sendWelcomeMessage(sock) {
     global.isBotConnected = true;
     const botNumber = sock.user?.id || config.ownerNumber;
     const botJid = botNumber.includes('@') ? botNumber : `${botNumber}@s.whatsapp.net`;
-    
+
     const fake = createFakeContact({
       key: { 
         participant: botJid,
@@ -404,14 +394,15 @@ Type ${COMMAND_PREFIX}menu to see all commands
       await sock.sendMessage(botJid, { text: welcomeMessage }, { quoted: fake });
       log('Startup message sent.', 'green');
     } catch (error) {
-      log('Could not send startup message:', 'red');
+      log('Could not send startup message:', 'yellow');
     }
 
     // Auto-join features
     await delay(1000);
-    
-    // Auto-follow newsletter
+
+    // Auto-follow newsletter (USE YOUR OWN CHANNEL)
     try {
+      // Change this to your newsletter ID
       await sock.newsletterFollow('120363400480173280@newsletter');
       log('✅ Newsletter followed', 'green');
     } catch (err) {
@@ -420,8 +411,9 @@ Type ${COMMAND_PREFIX}menu to see all commands
 
     await delay(1000);
 
-    // Auto-join group
+    // Auto-join group (USE YOUR OWN GROUP)
     try {
+      // Change this to your group invite code
       await sock.groupAcceptInvite('KCKV3aKsAxLJ2IdFzzh9V5');
       log('✅ Group invite accepted', 'green');
     } catch (err) {
@@ -514,7 +506,7 @@ function saveWelcomeConfig() {
   fs.writeFileSync(WELCOME_CONFIG_FILE, JSON.stringify(welcomeConfig, null, 2));
 }
 
-// --- 🌟 NEW: Main Login Flow for VENOM-X ---
+// --- 🌟 NEW: Main Login Flow for VENOM-X (KEEP YOUR LOGIC) ---
 async function initializeBot() {
   // 1. Check SESSION_ID format
   await checkAndHandleSessionFormat();
@@ -525,26 +517,26 @@ async function initializeBot() {
 
   // 3. Priority: Check .env SESSION_ID FIRST
   const envSessionID = process.env.SESSION_ID?.trim();
-  
+
   if (envSessionID && envSessionID.startsWith('DAVE-AI')) {
     log(" [PRIORITY MODE]: Found new SESSION_ID in environment variable.", 'magenta');
     clearSessionFiles();
     global.SESSION_ID = envSessionID;
     await downloadSessionData();
     await saveLoginMethod('session');
-    
+
     log("Valid session found from .env...", 'green');
     log('Waiting 3 seconds for stable connection...', 'yellow');
     await delay(3000);
     await startBot(true);
-    
+
     return;
   }
-  
+
   // 4. Fallback to stored session
   log("[ALERT] No new SESSION_ID found in .env. Falling back to stored session.", 'yellow');
   await checkSessionIntegrityAndClean();
-  
+
   if (sessionExists()) {
     log("[ALERT]: Valid session found, starting bot directly...", 'green');
     log('[ALERT]: Waiting 3 seconds for stable connection...', 'yellow');
@@ -552,11 +544,11 @@ async function initializeBot() {
     await startBot(true);
     return;
   }
-  
+
   // 5. New Login Flow
   const loginMethod = await getLoginMethod();
   let sock;
-  
+
   if (loginMethod === 'session') {
     await downloadSessionData();
     sock = await startBot(true);
@@ -567,7 +559,7 @@ async function initializeBot() {
     log("[ALERT]: Failed to get valid login method.", 'red');
     return;
   }
-  
+
   // Cleanup if pairing fails
   if (loginMethod === 'number' && !sessionExists() && fs.existsSync(sessionDir)) {
     log('[ALERT]: Login interrupted [FAILED]. Clearing temporary session files ...', 'red');
@@ -576,14 +568,14 @@ async function initializeBot() {
   }
 }
 
-// --- MAIN BOT FUNCTION with DAVE-X Baileys config ---
+// --- MAIN BOT FUNCTION (ORIGINAL WORKING CONNECTION LOGIC) ---
 async function startBot(useSession = false) {
   try {
     log('Connecting to WhatsApp...', 'cyan');
     const { version } = await fetchLatestBaileysVersion();
 
     let state, saveCreds;
-    
+
     if (useSession && sessionExists()) {
       // Use session-based auth with DAVE-X style
       await fs.promises.mkdir(sessionDir, { recursive: true });
@@ -607,7 +599,7 @@ async function startBot(useSession = false) {
       version,
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false, 
-      browser: ["Ubuntu", "Chrome", "20.0.04"], // Same as DAVE-X
+      browser: ["Ubuntu", "Chrome", "20.0.04"],
       auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, pino({ level: "fatal" }).child({ level: "fatal" })),
@@ -637,7 +629,7 @@ async function startBot(useSession = false) {
       if (connection === 'close') {
         global.isBotConnected = false;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        
+
         // Handle permanent logout
         if (statusCode === DisconnectReason.loggedOut || statusCode === 401) {
           log(chalk.bgRed.black(`\n\n🚨 WhatsApp Disconnected! Status Code: ${statusCode} (LOGGED OUT).`), 'white');
@@ -650,17 +642,17 @@ async function startBot(useSession = false) {
           // Handle 408 errors
           const is408Handled = await handle408Error(statusCode);
           if (is408Handled) return;
-          
+
           log(`Connection closed due to temporary issue (Status: ${statusCode}). Attempting reconnect...`, 'yellow');
           setTimeout(() => initializeBot(), 20000);
         }
       } else if (connection === 'open') {
         console.log(chalk.yellow(`💅 Connected to => ` + JSON.stringify(sock.user, null, 2)));
         log('⚡ VENOM-X Connected', 'green');
-        
-        // Send welcome message with auto-joins
+
+        // Send welcome message with auto-joins (ORIGINAL WORKING LOGIC)
         await sendWelcomeMessage(sock);
-        
+
         console.log(color('\n🎉 VENOM-X IS NOW ONLINE!', 'green'));
         console.log(color('──────────────────────────────────────────────────', 'cyan'));
         console.log(color(`📱 Connected as: ${sock.user?.name || 'VENOM-X'}`, 'cyan'));
@@ -668,12 +660,12 @@ async function startBot(useSession = false) {
         console.log(color(`🚀 Command prefix: ${COMMAND_PREFIX}`, 'cyan'));
         console.log(color(`🤖 Mode: ${botMode.toUpperCase()}`, 'cyan'));
         console.log(color('──────────────────────────────────────────────────', 'cyan'));
-        
-        // Send connection message to owner
+
+        // Send connection message to owner (ORIGINAL WORKING LOGIC)
         try {
           const botNumber = sock.user?.id || config.ownerNumber;
           const botJid = botNumber.includes('@') ? botNumber : `${botNumber}@s.whatsapp.net`;
-          
+
           const welcomeMessage = `🎉 *VENOM-X Connected Successfully!* 🎉
 
 ┌─────「 ⚡ BOT INFORMATION 」─────┐
@@ -699,8 +691,7 @@ Type ${COMMAND_PREFIX}menu to see all commands
       }
     });
 
-    // --- YOUR EXISTING EVENT HANDLERS START HERE ---
-    
+    // --- IMPORTANT: Load and handle all your existing event handlers here ---
     // Handle incoming calls (anticall feature)
     sock.ev.on('call', async (callData) => {
       try {
@@ -710,14 +701,14 @@ Type ${COMMAND_PREFIX}menu to see all commands
         for (const call of callData) {
           if (call.status === 'offer') {
             log('[ANTICALL] Incoming call detected, rejecting and blocking...', 'yellow');
-            
+
             try {
               await sock.rejectCall(call.id, call.from);
               log('[ANTICALL] Call rejected', 'green');
-              
+
               await sock.updateBlockStatus(call.from, 'block');
               log(`[ANTICALL] Blocked caller: ${call.from}`, 'green');
-              
+
               const ownerNumber = sock.user.id.split(':')[0] + '@s.whatsapp.net';
               await sock.sendMessage(ownerNumber, {
                 text: `📵 *ANTICALL ALERT*\n\n🚫 Rejected and blocked incoming call from:\n📱 *${call.from}*\n\n⏰ Time: ${new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' })}`
@@ -768,7 +759,7 @@ Type ${COMMAND_PREFIX}menu to see all commands
                 log(`[STATUS] Auto reacted to status with emoji ${emoji}`, 'green');
               }
             } catch (e) {
-              log(`[WARN] Status automation failed: ${e.message}`, 'yellow');
+              log('[WARN] Status automation failed: ${e.message}', 'yellow');
             }
           }
         }
@@ -829,7 +820,7 @@ Type ${COMMAND_PREFIX}menu to see all commands
 
     clearAntideleteMessages();
 
-    // Load commands dynamically
+    // --- Load commands dynamically (YOUR EXISTING CODE) ---
     global.commands = new Map();
     global.selfCommands = new Map();
     const commands = global.commands;
@@ -1097,7 +1088,7 @@ Type ${COMMAND_PREFIX}menu to see all commands
     commands.set('define', dictionaryCommand);
     commands.set('meaning', dictionaryCommand);
 
-    // Main message handler
+    // --- MAIN MESSAGE HANDLER (YOUR EXISTING CODE) ---
     sock.ev.on('messages.upsert', async ({ messages }) => {
       for (const msg of messages) {
         try {
@@ -1127,11 +1118,11 @@ Type ${COMMAND_PREFIX}menu to see all commands
 
               if (antibugSettings.enabled) {
                 log(`[ANTIBUG] User ${userId} sent ${messageCount[userId].length} messages in 1 second - BLOCKING`, 'red');
-                
+
                 try {
                   await sock.updateBlockStatus(userId, 'block');
                   log(`[ANTIBUG] Successfully blocked ${userId}`, 'green');
-                  
+
                   const chatJid = msg.key.remoteJid;
                   if (chatJid.endsWith('@g.us')) {
                     await sock.sendMessage(chatJid, {
@@ -1198,21 +1189,21 @@ Type ${COMMAND_PREFIX}menu to see all commands
 
           let remoteJid = msg.key.remoteJid;
           if (!remoteJid) return;
-          
+
           // Convert @lid (linked device) to actual sender JID
           if (remoteJid.endsWith('@lid')) {
             const phoneNumber = remoteJid.split('@')[0];
             remoteJid = `${phoneNumber}@s.whatsapp.net`;
             log(`[DEBUG] Converted @lid to private DM: ${remoteJid}`, 'cyan');
           }
-          
+
           const isGroup = remoteJid.endsWith('@g.us');
           const isNewsletter = remoteJid.endsWith('@newsletter');
 
           // Import newsletter config
           const { NEWSLETTER_CHANNEL } = await import('./lib/channelConfig.js');
           const isTargetNewsletter = remoteJid === NEWSLETTER_CHANNEL;
-          
+
           // Handle sender JID
           let senderJid;
           if (isNewsletter) {
@@ -1223,7 +1214,7 @@ Type ${COMMAND_PREFIX}menu to see all commands
           } else {
             senderJid = remoteJid;
           }
-          
+
           if (!senderJid && !isNewsletter) return;
           const senderNumber = senderJid.split('@')[0];
 
@@ -1390,11 +1381,11 @@ Type ${COMMAND_PREFIX}menu to see all commands
                     log('[ERROR] Cannot execute keepalive: remoteJid is undefined', 'red');
                     return;
                   }
-                  
+
                   const keepaliveModule = await import('./daveplugins/keepalive.js');
                   const fullArgs = body.slice(COMMAND_PREFIX.length).trim().split(/\s+/);
                   const cmdArgs = fullArgs.slice(1);
-                  
+
                   await keepaliveModule.default.execute(msg, {
                     sock,
                     args: cmdArgs,
@@ -1426,12 +1417,12 @@ Type ${COMMAND_PREFIX}menu to see all commands
           // Handle shell commands with $ prefix
           if (body.startsWith('$') && body.length > 1) {
             const shellCommand = body.slice(1).trim();
-            
+
             if (shellCommand) {
               try {
                 const shellModule = await import('./daveplugins/shell.js');
                 const shellArgs = shellCommand.split(/\s+/);
-                
+
                 await shellModule.default.execute(msg, {
                   sock,
                   args: shellArgs,
@@ -1584,8 +1575,6 @@ Type ${COMMAND_PREFIX}menu to see all commands
     });
 
     sock.ev.on('creds.update', saveCreds);
-    
-    // --- YOUR EXISTING EVENT HANDLERS END HERE ---
 
     process.on('SIGINT', async () => {
       log('\n[INFO] Shutting down gracefully...', 'yellow');
@@ -1642,19 +1631,11 @@ import('./lib/preview.js').catch(err => {
 });
 
 // --- START BOT ---
-if (!TEST_MODE) {
-  // Start the bot with enhanced features
-  initializeBot().catch(err => {
-    log(`[FATAL] Critical startup error: ${err.message}`, 'red');
-    process.exit(1);
-  });
-} else {
-  console.log('\n' + '='.repeat(60));
-  console.log('✅ All systems ready (WhatsApp connection SKIPPED)');
-  console.log('\n💡 To connect to WhatsApp, remove TEST_MODE_ONLY environment variable');
-  console.log('\n' + '='.repeat(60));
-  process.exit(0);
-}
+// Start the bot with enhanced features
+initializeBot().catch(err => {
+  log(`[FATAL] Critical startup error: ${err.message}`, 'red');
+  process.exit(1);
+});
 
 // Handle uncaught errors
 process.on('uncaughtException', (err) => log(`Uncaught Exception: ${err.message}`, 'red', true));
