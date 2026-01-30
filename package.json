@@ -41,6 +41,7 @@
     "mongoose": "^8.21.0",
     "mumaker": "github:PikaBotz/mumaker",
     "node-fetch": "^3.3.2",
+    "node-cron": "^3.0.3",
     "node-webpmux": "^3.2.1",
     "nodemailer": "^7.0.12",
     "openai": "^4.104.0",
