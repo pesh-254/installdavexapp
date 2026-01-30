@@ -1,5 +1,6 @@
 # Secrets and API keys
 *.env
+.env
 .env*
 config.js
 settings.js
